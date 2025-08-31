@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AI-powered music analysis and feedback.">
+    <title>Music Analyzer AI</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+    <style>
+        :root {
+            --primary-color: #4F46E5;
+            --secondary-color: #BE185D;
+            --accent-color: #9333EA;
+            --background-color: #0B0B0F;
+            --text-color: #FFFFFF;
+            --text-color-muted: #A9A9B3;
+            --card-bg: #121216;
+            --border-color: #3A3A40;
+            --accent-border-color: rgba(79, 70, 229, 0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text-color);
+            line-height: 1.6;
+            overflow: hidden;
+            background-color: var(--background-color);
+            position: relative;
+            cursor: none;
+        }
+
+        ::-webkit-scrollbar { width: 12px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: var(--border-color); border-radius: 10px; border: 3px solid var(--background-color); }
+        ::-webkit-scrollbar-thumb:hover { background-color: var(--primary-color); }
+        .cursor-dot, .cursor-aura { position: fixed; top: 0; left: 0; pointer-events: none; border-radius: 50%; z-index: 9999; transform: translate(-50%, -50%); }
+        .cursor-dot { width: 8px; height: 8px; background-color: var(--primary-color); }
+        .cursor-aura { width: 40px; height: 40px; background-color: rgba(79, 70, 229, 0.1); border: 1px solid var(--accent-border-color); }
+        a, button, input, select { cursor: none; }
+
+        #procedural-background { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+
+        .app-container { display: grid; grid-template-columns: 450px 1fr; height: 100vh; width: 100vw; }
+
+        .control-panel {
+            padding: 40px;
+            display: flex;
+            overflow-y: auto;
+            border-right: 1px solid var(--border-color);
+        }
+        .results-panel {
+            padding: 40px;
+            overflow-y: auto;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .control-panel-content { width: 100%; }
+        .control-panel h1 { font-size: 2.5rem; font-weight: 800; line-height: 1.2; margin-bottom: 15px; background: linear-gradient(135deg, var(--text-color) 0%, var(--primary-color) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .control-panel p { font-size: 1rem; color: var(--text-color-muted); margin-bottom: 30px; }
+
+        .results-empty-state { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; width: 100%; text-align: center; color: var(--text-color-muted); transition: opacity 0.5s ease; z-index: 1; }
+        .results-empty-state svg { width: 80px; height: 80px; margin-bottom: 20px; stroke: var(--border-color); }
+        .results-empty-state h2 { font-size: 1.5rem; color: var(--text-color); margin-bottom: 10px; }
+        .results-panel.has-results .results-empty-state, .results-panel.is-loading .results-empty-state { opacity: 0; display: none; }
+
+        /* UPDATED: Reduced size and centered loader */
+        .loader-container {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px; /* Smaller width */
+            height: 300px; /* Smaller height */
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        .results-panel.is-loading .loader-container { display: flex; }
+        .loader-border { position: relative; width: 100%; height: 100%; border-radius: 24px; overflow: hidden; }
+        .loader-border::before { content: ''; position: absolute; top: 50%; left: 50%; width: 200%; height: 200%; background: conic-gradient( from 0deg, var(--primary-color), var(--accent-color), var(--secondary-color), var(--accent-color), var(--primary-color)); animation: rotate 4s linear infinite; }
+        .loader-border::after { content: ''; position: absolute; inset: 3px; background: var(--background-color); border-radius: 22px; }
+        @keyframes rotate { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+
+        .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 24px; padding: 30px; }
+
+        .form-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem; color: var(--text-color-muted); }
+        .form-group input, .form-group select { width: 100%; padding: 12px 16px; background: var(--background-color); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-color); font-size: 1rem; transition: all 0.3s ease; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px var(--accent-border-color); }
+        .file-input-wrapper { position: relative; width: 100%; height: 50px; background: var(--background-color); border: 1px solid var(--border-color); border-radius: 10px; display: flex; align-items: center; padding: 0 16px; transition: all 0.3s ease; cursor: pointer; }
+        .file-input-wrapper:hover { border-color: var(--primary-color); }
+        .file-input-wrapper input[type="file"] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+        .file-input-label { color: var(--text-color-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .checkbox-group { display: flex; align-items: center; gap: 12px; }
+        .checkbox-group label { margin-bottom: 0; user-select: none; cursor: pointer; }
+        .checkbox-group input[type="checkbox"] { appearance: none; -webkit-appearance: none; width: 20px; height: 20px; border: 2px solid var(--border-color); border-radius: 6px; position: relative; transition: all 0.2s ease; cursor: pointer; }
+        .checkbox-group input[type="checkbox"]:checked { background-color: var(--primary-color); border-color: var(--primary-color); }
+        .checkbox-group input[type="checkbox"]:checked::after { content: '✔'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 14px; }
+        .cta-primary { padding: 16px 30px; border-radius: 12px; font-size: 1rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; justify-content: center; position: relative; overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease; background: var(--primary-color); color: #fff; border: none; box-shadow: 0 8px 32px rgba(79, 70, 229, 0.4); width: 100%; margin-top: 20px; cursor: pointer; }
+        .cta-primary:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(79, 70, 229, 0.5); }
+
+        #results-container { display: none; grid-template-columns: 1.5fr 1fr; gap: 30px; height: 100%; width: 100%; z-index: 1; }
+        .results-panel.has-results #results-container { display: grid; }
+
+        .results-feedback-col { display: grid; grid-template-rows: auto 1fr; gap: 30px; }
+        .results-top-row { display: grid; grid-template-columns: auto 1fr; gap: 30px; }
+        .feedback-card { opacity: 0; transform: translateY(20px); animation: fadeInUp 0.6s ease forwards; }
+        .feedback-score-card { text-align: center; background: var(--primary-color); border: none; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; min-width: 180px; border-radius: 24px;}
+        .feedback-score-card .score-title { font-size: 1rem; color: rgba(255, 255, 255, 0.7); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        .feedback-score-card .score-value { font-size: 3.5rem; font-weight: 800; color: var(--text-color); line-height: 1; }
+        .score-tooltip { position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%); background: #000; color: #fff; padding: 10px 15px; border-radius: 8px; font-size: 0.9rem; width: 250px; text-align: center; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; pointer-events: none; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .feedback-score-card:hover .score-tooltip { opacity: 1; visibility: visible; }
+        .feedback-content-card h3 { font-size: 1.2rem; margin-bottom: 15px; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+        .feedback-content-card p { color: var(--text-color-muted); line-height: 1.7; font-size: 0.95rem; }
+        #chart-card { display: flex; flex-direction: column; }
+        #chart-card h2 { font-size: 1.2rem; margin-bottom: 15px; background: linear-gradient(135deg, var(--text-color) 0%, var(--primary-color) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+        #chart-container { flex-grow: 1; min-height: 250px; }
+
+        .tag-input-container { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px; background: var(--background-color); border: 1px solid var(--border-color); border-radius: 10px; }
+        .tag { display: flex; align-items: center; background: var(--primary-color); padding: 5px 10px; border-radius: 6px; font-size: 0.9rem; }
+        .tag-remove-btn { background: none; border: none; color: #fff; margin-left: 8px; font-size: 1rem; cursor: pointer; }
+        #instrument-input { flex-grow: 1; background: transparent; border: none; outline: none; color: var(--text-color); min-width: 120px; }
+
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 1024px) {
+            body { display: block; padding: 0; }
+            .app-container { grid-template-columns: 1fr; height: auto; min-height: 100vh; }
+            .control-panel { border-right: none; border-bottom: 1px solid var(--border-color); }
+            .results-panel { padding: 20px; } /* Adjusted for mobile */
+            #results-container { grid-template-columns: 1fr; }
+            .results-top-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="procedural-background"></canvas>
+    <div class="cursor-aura"></div>
+    <div class="cursor-dot"></div>
+
+    <div class="app-container">
+
+        <aside class="control-panel">
+            <div class="control-panel-content">
+                <h1>Music Analyzer AI</h1>
+                <p>Upload a performance, original, or remix. Our AI critic will provide structured, encouraging feedback to help you improve.</p>
+
+                <form id="analysis-form" enctype="multipart/form-data">
+                    <div class="form-grid">
+                        <div class="form-group"><label for="audio_file">Audio File (.wav, .mp3)</label><div class="file-input-wrapper"><span class="file-input-label">Click to select a file...</span><input type="file" id="audio_file" name="audio_file" accept="audio/*" required></div></div>
+                        <div class="form-group">
+                            <label for="instrument-input">Instrument(s)</label>
+                            <div id="tag-input-container" class="tag-input-container">
+                                <input type="text" id="instrument-input" placeholder="Type and press Enter...">
+                            </div>
+                            <input type="hidden" name="instruments" id="instruments-hidden-input">
+                        </div>
+                        <div class="form-group"><label for="submission_type">Submission Type</label><select id="submission_type" name="submission_type" required><option value="Cover Song">Cover Song</option><option value="Original Composition">Original Composition</option><option value="Remix">Remix</option></select></div>
+                        <div class="form-group"><label for="song">Song Title</label><input type="text" id="song" name="song" required placeholder="e.g., Wonderwall"></div>
+                        <div class="form-group"><label for="artist_or_genre">Artist / Genre</label><input type="text" id="artist_or_genre" name="artist_or_genre" required placeholder="e.g., Oasis / Indie Rock"></div>
+                        <div class="form-group checkbox-group"><input type="checkbox" id="vocals_present" name="vocals_present"><label for="vocals_present">This track includes vocals</label></div>
+                    </div>
+
+                    <button type="submit" id="submit-btn" class="cta-primary">Analyze My Music</button>
+                </form>
+            </div>
+        </aside>
+
+        <main class="results-panel" id="results-panel">
+            <div class="results-empty-state" id="results-empty-state">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467l2.31-.66a2.25 2.25 0 001.632-2.163zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 01-.99-3.467l2.31-.66A2.25 2.25 0 009 15.553z" /></svg>
+                <h2>Your Analysis Will Appear Here</h2>
+                <p>Fill out the form and submit your audio file to begin.</p>
+            </div>
+            <div class="loader-container"><div class="loader-border"></div></div>
+            <div id="results-container"></div>
+        </main>
+    </div>
+
+    <script>
+        'use strict';
+
+        let chart = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeForm();
+            initializeProceduralBackground();
+            initializeInteractiveEffects();
+        });
+
+        function initializeForm() {
+            const form = document.getElementById('analysis-form');
+            const submitBtn = document.getElementById('submit-btn');
+            const resultsPanel = document.getElementById('results-panel');
+            const fileInput = document.getElementById('audio_file');
+            const fileInputLabel = document.querySelector('.file-input-label');
+
+            const tagInputContainer = document.getElementById('tag-input-container');
+            const instrumentInput = document.getElementById('instrument-input');
+            const hiddenInput = document.getElementById('instruments-hidden-input');
+            let instruments = [];
+
+            const updateHiddenInput = () => {
+                hiddenInput.value = instruments.join(',');
+            };
+
+            const createTag = (text) => {
+                const tag = document.createElement('div');
+                tag.className = 'tag';
+                tag.textContent = text;
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'tag-remove-btn';
+                removeBtn.textContent = '×';
+                removeBtn.onclick = () => {
+                    instruments = instruments.filter(t => t !== text);
+                    tag.remove();
+                    updateHiddenInput();
+                };
+                tag.appendChild(removeBtn);
+                return tag;
+            };
+
+            instrumentInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && instrumentInput.value.trim() !== '') {
+                    e.preventDefault();
+                    const newInstrument = instrumentInput.value.trim();
+                    if (!instruments.includes(newInstrument)) {
+                        instruments.push(newInstrument);
+                        const tagEl = createTag(newInstrument);
+                        tagInputContainer.insertBefore(tagEl, instrumentInput);
+                        updateHiddenInput();
+                    }
+                    instrumentInput.value = '';
+                }
+            });
+
+            fileInput.addEventListener('change', () => { fileInputLabel.textContent = fileInput.files.length > 0 ? fileInput.files[0].name : 'Click to select a file...'; });
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (instruments.length === 0 && instrumentInput.value.trim() !== '') {
+                    instruments.push(instrumentInput.value.trim());
+                    updateHiddenInput();
+                }
+                if (instruments.length === 0) {
+                    alert('Please add at least one instrument.');
+                    return;
+                }
+
+                submitBtn.style.display = 'none';
+                resultsPanel.classList.remove('has-results');
+                resultsPanel.classList.add('is-loading');
+                try {
+                    const response = await fetch('/analyze', { method: 'POST', body: new FormData(form), });
+                    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.error || 'An unknown error occurred.'); }
+                    const data = await response.json();
+                    renderFeedback(data, () => { renderChart(data.radar_data, data.radar_labels, data.top_notes_indices); });
+                    resultsPanel.classList.add('has-results');
+                } catch (error) { console.error('Analysis failed:', error); alert(`Error: ${error.message}`);
+                } finally { submitBtn.style.display = 'inline-flex'; resultsPanel.classList.remove('is-loading'); }
+            });
+        }
+
+        function renderFeedback(data, onRenderComplete) {
+            const container = document.getElementById('results-container');
+            const sections = parseFeedbackText(data.feedback_text);
+            const formatBold = (text) => text ? text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>') : 'No details available.';
+            const scoreHTML = `<div class="feedback-card feedback-score-card" style="animation-delay: 0.1s;"><div class="score-title">Overall Score</div><div class="score-value">${sections.score || 'N/A'}</div><div class="score-tooltip">${sections.summary || 'An AI-generated score based on your performance.'}</div></div>`;
+            const analysisHTML = `<div class="feedback-card feedback-content-card" style="animation-delay: 0.2s;"><h3>Detailed Analysis</h3><p>${formatBold(sections['## Detailed Analysis'])}</p></div>`;
+            const suggestionsHTML = `<div class="feedback-card feedback-content-card" style="animation-delay: 0.3s;"><h3>Actionable Suggestions</h3><p>${formatBold(sections['## Actionable Suggestions'])}</p></div>`;
+            const graphHTML = `<div class="feedback-card" id="chart-card" style="animation-delay: 0.4s;"><h2>Harmonic Fingerprint</h2><div id="chart-container"></div></div>`;
+            container.innerHTML = `<div class="results-feedback-col"><div class="results-top-row">${scoreHTML}${analysisHTML}</div>${suggestionsHTML}</div><div class="results-graph-col">${graphHTML}</div>`;
+            if(onRenderComplete) { setTimeout(onRenderComplete, 0); }
+        }
+
+        function parseFeedbackText(text) {
+            const sections = {};
+            const headings = ['## Overall Score', '## Detailed Analysis', '## Actionable Suggestions'];
+            let currentHeading = null, contentBuffer = '';
+            const lines = text.split('\n');
+            lines.forEach(line => {
+                const trimmedLine = line.trim();
+                if (headings.includes(trimmedLine)) { if (currentHeading) { sections[currentHeading] = contentBuffer.trim(); } currentHeading = trimmedLine; contentBuffer = '';
+                } else if (currentHeading) { contentBuffer += line + '\n'; }
+            });
+            if (currentHeading) { sections[currentHeading] = contentBuffer.trim(); }
+            if (sections['## Overall Score']) {
+                const scoreLines = sections['## Overall Score'].split('\n');
+                sections.score = scoreLines[0] || 'N/A';
+                sections.summary = scoreLines.slice(1).join(' ') || 'An AI-generated score based on your performance.';
+            }
+            return sections;
+        }
+
+        function renderChart(seriesData, labels, topNotesIndices = []) {
+            if(chart) { chart.destroy(); }
+            const chartContainer = document.querySelector("#chart-container");
+            if (!chartContainer) return;
+
+            const markerColors = new Array(12).fill('#fff');
+            const highlightColor = '#FFD700';
+            topNotesIndices.forEach(index => { markerColors[index] = highlightColor; });
+
+            const options = {
+                series: [{ name: 'Pitch Class Prominence', data: seriesData }],
+                chart: { type: 'radar', height: '100%', background: 'transparent', toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
+                theme: { mode: 'dark' },
+                stroke: { width: 2, colors: [ 'var(--primary-color)' ] },
+                fill: { opacity: 0.3, colors: [ 'var(--primary-color)' ] },
+                markers: { size: 4, colors: markerColors, strokeColors: 'var(--primary-color)', strokeWidth: 2, hover: { size: 6 } },
+                xaxis: { categories: labels, labels: { style: { colors: 'var(--text-color-muted)', fontSize: '12px' } } },
+                yaxis: { labels: { formatter: (value) => value.toFixed(0), style: { colors: 'var(--text-color-muted)' } } },
+                grid: { borderColor: 'var(--border-color)' },
+                tooltip: { y: { formatter: (value) => `${value.toFixed(2)}% prominence` } }
+            };
+            chart = new ApexCharts(chartContainer, options);
+            chart.render();
+        }
+
+        function initializeInteractiveEffects() {
+            const cursorDot = document.querySelector('.cursor-dot');
+            const cursorAura = document.querySelector('.cursor-aura');
+            if (!cursorDot || !cursorAura) return;
+
+            let mouseX = 0, mouseY = 0, auraX = 0, auraY = 0;
+            window.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
+
+            const animateEffects = () => {
+                auraX += (mouseX - auraX) * 0.2;
+                auraY += (mouseY - auraY) * 0.2;
+                cursorDot.style.transform = `translate(${mouseX - (cursorDot.offsetWidth / 2)}px, ${mouseY - (cursorDot.offsetHeight / 2)}px)`;
+                cursorAura.style.transform = `translate(${auraX - (cursorAura.offsetWidth / 2)}px, ${auraY - (cursorAura.offsetHeight / 2)}px)`;
+                requestAnimationFrame(animateEffects);
+            };
+            animateEffects();
+        }
+
+        function initializeProceduralBackground() {
+            const canvas = document.getElementById('procedural-background');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            let blobs = [];
+            const blobCount = 5;
+            const setCanvasDimensions = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+            window.addEventListener('resize', setCanvasDimensions);
+            class Blob {
+                constructor() { this.x = Math.random() * canvas.width; this.y = Math.random() * canvas.height; this.radius = Math.random() * 400 + 400; this.vx = (Math.random() - 0.5) * 1.5; this.vy = (Math.random() - 0.5) * 1.5; this.color = { h: Math.random() * 60 + 220, s: 40, l: 20 }; this.maxLife = Math.random() * 800 + 800; this.life = this.maxLife; this.alpha = 0; }
+                update() { this.x += this.vx; this.y += this.vy; this.life--; if (this.x + this.radius > canvas.width || this.x - this.radius < 0) this.vx *= -1; if (this.y + this.radius > canvas.height || this.y - this.radius < 0) this.vy *= -1; const lifeProgress = (this.maxLife - this.life) / this.maxLife; this.alpha = 0.08 * Math.sin(lifeProgress * Math.PI); }
+                draw() { ctx.beginPath(); const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius); const colorString = `hsla(${this.color.h}, ${this.color.s}%, ${this.color.l}%, ${this.alpha})`; const transparentString = `hsla(${this.color.h}, ${this.color.s}%, ${this.color.l}%, 0)`; gradient.addColorStop(0, colorString); gradient.addColorStop(1, transparentString); ctx.fillStyle = gradient; ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill(); }
+            }
+            function createBlobs() { blobs = []; for (let i = 0; i < blobCount; i++) { blobs.push(new Blob()); } }
+            function animate() { ctx.clearRect(0, 0, canvas.width, canvas.height); blobs.forEach((blob, index) => { blob.update(); blob.draw(); if (blob.life <= 0) { blobs[index] = new Blob(); } }); requestAnimationFrame(animate); }
+            setCanvasDimensions(); createBlobs(); animate();
+        }
+    </script>
+</body>
+</html>
