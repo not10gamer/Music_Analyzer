@@ -35,8 +35,6 @@ if not app.config['SECRET_KEY']:
 DATA_DIR = '/data'
 DB_PATH = os.path.join(DATA_DIR, 'users.db')
 
-os.makedirs(DATA_DIR, exist_ok=True)
-
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -63,40 +61,12 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-# MODIFIED: Database logic is now inside a dedicated command
-# In app.py, replace the init-db-command function
-@app.cli.command("init-db")
-def init_db_command():
-    """Creates tables and seeds default users if necessary."""
-    print("Ensuring database tables exist...")
-    # This is safe to run every time. It will only create tables that don't exist.
-    db.create_all()
-    print("Tables created or already exist.")
-
-    # Check if any users exist before trying to add them.
-    if User.query.first() is None:
-        print("No users found. Seeding default users...")
-        DEFAULT_USERS = [
-            {'username': 'admin', 'password': 'admin'},
-            {'username': 'SSA', 'password': 'Gay'},
-            {'username': 'Ethos', 'password': 'Hasini'}
-        ]
-        for user_data in DEFAULT_USERS:
-            print(f"Creating default user: {user_data['username']}")
-            new_user = User(username=user_data['username'])
-            new_user.set_password(user_data['password'])
-            db.session.add(new_user)
-        db.session.commit()
-        print("Default users seeded.")
-    else:
-        print("Users already exist. Skipping seeding.")
-
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# --- All routes below this are unchanged ---
+# --- ROUTES START HERE ---
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -247,3 +217,29 @@ def analyze_music():
 @login_required
 def index():
     return render_template('index.html')
+
+# --- FINAL INITIALIZATION BLOCK ---
+# This block runs when each instance of the app starts.
+with app.app_context():
+    print("Ensuring database tables exist...")
+    # This is safe to run every time. It will only create tables that don't exist.
+    db.create_all()
+    print("Tables created or already exist.")
+
+    # Check if any users exist before trying to add them.
+    if User.query.first() is None:
+        print("No users found. Seeding default users...")
+        DEFAULT_USERS = [
+            {'username': 'admin', 'password': 'admin'},
+            {'username': 'SSA', 'password': 'Gay'},
+            {'username': 'Ethos', 'password': 'Hasini'}
+        ]
+        for user_data in DEFAULT_USERS:
+            print(f"Creating default user: {user_data['username']}")
+            new_user = User(username=user_data['username'])
+            new_user.set_password(user_data['password'])
+            db.session.add(new_user)
+        db.session.commit()
+        print("Default users seeded.")
+    else:
+        print("Users already exist. Skipping seeding.")

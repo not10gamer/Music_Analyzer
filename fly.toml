@@ -1,28 +1,18 @@
-# fly.toml app configuration file generated for music-analyzer-gay on 2025-09-01T16:31:55+05:30
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
+# fly.toml
 
-app = 'music-analyzer-gay'
-primary_region = 'sin'
+app = "music-analyzer-gay"
+primary_region = "sin"
 
 [build]
-
-[processes]
-  app = "/app/run.sh"
-
-[deploy]
-  release_command = "/app/start.sh"
 
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = 'stop'
+  auto_stop_machines = true
   auto_start_machines = true
   min_machines_running = 0
-  processes = ['app']
+  processes = ["app"]
 
-[[vm]]
-  memory = '1gb'
-  cpu_kind = 'shared'
-  cpus = 1
+[mounts]
+  source = "app_data"
+  destination = "/data"

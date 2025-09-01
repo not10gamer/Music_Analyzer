@@ -17,7 +17,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the requirements file and install dependencies
-# This is done in a separate step to leverage Docker's layer caching
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -27,5 +26,5 @@ COPY . .
 # Expose the port the app will run on
 EXPOSE 8080
 
-RUN chmod +x /app/start.sh /app/run.sh
-CMD ["/app/run.sh"]
+# The command to run the application using Gunicorn
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--timeout", "120", "--workers", "1", "app:app"]
