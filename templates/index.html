@@ -260,7 +260,106 @@
 
         let harmonyChart = null;
         let tempoChart = null;
-        let loaderInterval = null;
+        let pollingInterval = null; // To store the setInterval ID
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeForm();
+            initializeProceduralBackground();
+            initializeInteractiveEffects();
+        });
+
+        // --- NEW: Function to handle polling for results ---
+        function pollForResult(jobId) {
+            if (pollingInterval) clearInterval(pollingInterval); // Clear any previous polling
+
+            const loaderText = document.getElementById('loader-text');
+            const loadingMessages = ["Tuning instruments...", "Checking pitch accuracy...", "Analyzing rhythm...", "Evaluating harmony...", "Composing feedback..."];
+            let messageIndex = 0;
+            loaderText.textContent = loadingMessages[0];
+
+            pollingInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/status/${jobId}`);
+                    if (!response.ok) {
+                        throw new Error('Could not fetch job status.');
+                    }
+                    const data = await response.json();
+
+                    if (data.status === 'complete' || data.status === 'cached') {
+                        clearInterval(pollingInterval);
+                        renderFeedback(data.result, () => {
+                             renderHarmonyChart(data.result.radar_data, data.result.radar_labels, data.result.top_notes_indices);
+                             // Tempo variation chart is disabled in this faster version
+                        });
+                        document.getElementById('results-panel').classList.add('has-results');
+                        document.getElementById('results-panel').classList.remove('is-loading');
+                        document.getElementById('submit-btn').style.display = 'inline-flex';
+                    } else if (data.status === 'error') {
+                        clearInterval(pollingInterval);
+                        alert(`Analysis failed: ${data.message}`);
+                        document.getElementById('results-panel').classList.remove('is-loading');
+                        document.getElementById('submit-btn').style.display = 'inline-flex';
+                    } else if (data.status === 'processing') {
+                        // Update loader text while we wait
+                        messageIndex = (messageIndex + 1) % loadingMessages.length;
+                        loaderText.textContent = loadingMessages[messageIndex];
+                    }
+
+                } catch (error) {
+                    console.error('Polling failed:', error);
+                    clearInterval(pollingInterval);
+                    alert('An error occurred while fetching the results.');
+                    document.getElementById('results-panel').classList.remove('is-loading');
+                    document.getElementById('submit-btn').style.display = 'inline-flex';
+                }
+            }, 2500); // Check for results every 2.5 seconds
+        }
+
+        function initializeForm() {
+            const form = document.getElementById('analysis-form');
+            const submitBtn = document.getElementById('submit-btn');
+            const resultsPanel = document.getElementById('results-panel');
+            // ... (rest of the form initialization variables are unchanged) ...
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                // ... (logic to handle instruments is unchanged) ...
+
+                submitBtn.style.display = 'none';
+                resultsPanel.classList.remove('has-results');
+                resultsPanel.classList.add('is-loading');
+
+                try {
+                    // --- MODIFIED: Start the job, don't wait for it ---
+                    const response = await fetch('/analyze', { method: 'POST', body: new FormData(form), });
+                    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.error || 'An unknown error occurred.'); }
+
+                    const data = await response.json();
+
+                    if (data.status === 'cached') {
+                        // If result was cached, render it immediately
+                        renderFeedback(data.result, () => {
+                             renderHarmonyChart(data.result.radar_data, data.result.radar_labels, data.result.top_notes_indices);
+                        });
+                        resultsPanel.classList.add('has-results');
+                        resultsPanel.classList.remove('is-loading');
+                        submitBtn.style.display = 'inline-flex';
+                    } else if (data.status === 'processing') {
+                        // If job is processing, start polling
+                        pollForResult(data.job_id);
+                    }
+
+                } catch (error) {
+                    console.error('Analysis failed:', error);
+                    alert(`Error: ${error.message}`);
+                    submitBtn.style.display = 'inline-flex';
+                    resultsPanel.classList.remove('is-loading');
+                }
+                // NOTE: The finally block is removed as logic is now handled by the polling function
+            });
+
+            // ... (rest of the initializeForm function is unchanged) ...
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             initializeForm();

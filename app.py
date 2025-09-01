@@ -2,8 +2,9 @@
 
 import os
 import uuid
-from flask import (Flask, request, jsonify, render_template, redirect, url_for,
-                   flash)
+import hashlib
+import threading
+from flask import (Flask, request, jsonify, render_template, redirect, url_for, flash)
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import google.generativeai as genai
@@ -12,8 +13,7 @@ import numpy as np
 from dotenv import load_dotenv
 
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import (LoginManager, UserMixin, login_user, logout_user,
-                         login_required, current_user)
+from flask_login import (LoginManager, UserMixin, login_user, logout_user, login_required, current_user)
 
 # --- Configuration ---
 load_dotenv()
@@ -27,6 +27,8 @@ model = genai.GenerativeModel('gemini-2.5-flash-lite')
 
 # --- Flask App Initialization & Configuration ---
 app = Flask(__name__)
+analysis_cache = {}
+background_jobs = {}  # For async tasks
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 if not app.config['SECRET_KEY']:
@@ -42,54 +44,51 @@ UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# --- Database and Login Manager Setup ---
 db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
 
-# --- User Database Model ---
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
     password_hash = db.Column(db.String(256))
 
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+    def set_password(self, password): self.password_hash = generate_password_hash(password)
 
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+    def check_password(self, password): return check_password_hash(self.password_hash, password)
+
+
+@app.cli.command("init-db")
+def init_db_command():
+    print("Ensuring database tables exist...")
+    db.create_all()
+    print("Tables created or already exist.")
+    if User.query.first() is None:
+        print("No users found. Seeding default users...")
+        DEFAULT_USERS = [
+            {'username': 'admin', 'password': 'admin'},
+            {'username': 'SSA', 'password': 'Gay'},
+            {'username': 'Ethos', 'password': 'Hasini'}
+        ]
+        for user_data in DEFAULT_USERS:
+            new_user = User(username=user_data['username'])
+            new_user.set_password(user_data['password'])
+            db.session.add(new_user)
+        db.session.commit()
+        print("Default users seeded.")
+    else:
+        print("Users already exist. Skipping seeding.")
 
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# --- ROUTES START HERE ---
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        user = User.query.filter_by(username=username).first()
-        if user and user.check_password(password):
-            login_user(user)
-            return redirect(url_for('index'))
-        else:
-            flash('Invalid username or password.')
-    return render_template('login.html')
-
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for('login'))
 
 def build_gemini_prompt(data):
+    # ... (this function is unchanged)
     base_prompt = (
         "You are an expert music critic. Analyze the following musical submission. "
         "Provide clear, constructive feedback. Use markdown for emphasis (e.g., **key point** or *word*). "
@@ -102,6 +101,7 @@ def build_gemini_prompt(data):
         "## Actionable Suggestions\n"
         "(Your specific tips for improvement here)"
     )
+    # ... (rest of the function is unchanged)
     vocal_instruction = ""
     if data.get("vocals_present"):
         vocal_instruction = (
@@ -147,27 +147,13 @@ def build_gemini_prompt(data):
             f"{vocal_instruction}"
         )
 
-@app.route('/analyze', methods=['POST'])
-@login_required
-def analyze_music():
-    if 'audio_file' not in request.files:
-        return jsonify({"error": "No audio file provided"}), 400
 
-    audio_file = request.files['audio_file']
-    if audio_file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-
-    required_fields = ['submission_type', 'instruments', 'song', 'artist_or_genre']
-    if not all(field in request.form for field in required_fields):
-        return jsonify({"error": "Missing one or more required fields"}), 400
-
-    unique_id = str(uuid.uuid4())
-    filename = secure_filename(audio_file.filename)
-    audio_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{unique_id}_{filename}")
-    audio_file.save(audio_path)
-
+def run_analysis_in_background(job_id, audio_path, submission_data_in, file_hash):
+    """This function contains the heavy work and is run in a separate thread."""
     try:
+        # 1. Perform audio analysis (CPU intensive)
         y, sr = librosa.load(audio_path, sr=None)
+
         tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
         chroma = librosa.feature.chroma_stft(y=y, sr=sr)
         radar_data = np.mean(chroma, axis=1)
@@ -176,70 +162,110 @@ def analyze_music():
         radar_labels = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
         top_notes_indices = np.argsort(radar_data)[-3:].tolist()
         top_notes_names = [radar_labels[i] for i in top_notes_indices]
-        onsets = librosa.onset.onset_detect(y=y, sr=sr, units='time')
-        tempo_variation_data = []
-        if len(onsets) > 2:
-            iois = np.diff(onsets)
-            iois = iois[iois > 0.01]
-            tempi = 60.0 / iois
-            tempi = np.clip(tempi, 40, 240)
-            time_stamps = onsets[:len(tempi)]
-            tempo_variation_data = np.vstack((time_stamps, tempi)).T.tolist()
-        submission_data = {
-            "type": request.form['submission_type'],
-            "instrument": request.form['instruments'],
-            "song": request.form['song'],
-            "artist_or_genre": request.form['artist_or_genre'],
-            "tempo": f"{tempo.item():.2f} BPM",
-            "vocals_present": request.form.get('vocals_present') == 'on',
-            "top_notes": top_notes_names
-        }
+
+        # Update submission_data with analysis results
+        submission_data = submission_data_in.copy()
+        submission_data["tempo"] = f"{tempo.item():.2f} BPM"
+        submission_data["top_notes"] = top_notes_names
+
+        # 2. Call the external API (Network intensive)
         prompt = build_gemini_prompt(submission_data)
         response = model.generate_content(prompt)
         feedback_text = response.text
-        return jsonify({
+
+        # 3. Store the final result
+        result = {
             "feedback_text": feedback_text,
             "radar_data": radar_data.tolist(),
             "radar_labels": radar_labels,
             "top_notes_indices": top_notes_indices,
             "estimated_tempo": f"{tempo.item():.2f} BPM",
-            "tempo_variation_data": tempo_variation_data
-        })
+            "tempo_variation_data": []  # Disabled in this version for simplicity
+        }
+
+        analysis_cache[file_hash] = result
+        background_jobs[job_id] = {"status": "complete", "result": result}
+
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": "An error occurred during analysis.", "details": str(e)}), 500
+        background_jobs[job_id] = {"status": "error", "message": str(e)}
     finally:
+        # 4. Clean up the temporary audio file
         if os.path.exists(audio_path):
             os.remove(audio_path)
+
+
+@app.route('/analyze', methods=['POST'])
+@login_required
+def analyze_music():
+    if 'audio_file' not in request.files: return jsonify({"error": "No audio file provided"}), 400
+    audio_file = request.files['audio_file']
+    if audio_file.filename == '': return jsonify({"error": "No selected file"}), 400
+
+    audio_bytes = audio_file.read()
+    file_hash = hashlib.md5(audio_bytes).hexdigest()
+    if file_hash in analysis_cache:
+        print(f"Returning cached result for file hash: {file_hash}")
+        # Return a completed job structure for consistency with async flow
+        return jsonify({"status": "cached", "result": analysis_cache[file_hash]})
+
+    audio_file.seek(0)
+
+    unique_id = str(uuid.uuid4())
+    filename = secure_filename(audio_file.filename)
+    audio_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{unique_id}_{filename}")
+    audio_file.save(audio_path)
+
+    submission_data = {
+        "type": request.form['submission_type'],
+        "instrument": request.form['instruments'],
+        "song": request.form['song'],
+        "artist_or_genre": request.form['artist_or_genre'],
+        "vocals_present": request.form.get('vocals_present') == 'on',
+    }
+
+    job_id = unique_id
+    background_jobs[job_id] = {"status": "processing"}
+
+    # Start the analysis in a background thread
+    thread = threading.Thread(target=run_analysis_in_background, args=(job_id, audio_path, submission_data, file_hash))
+    thread.start()
+
+    return jsonify({"status": "processing", "job_id": job_id})
+
+
+@app.route('/status/<job_id>')
+@login_required
+def get_status(job_id):
+    job = background_jobs.get(job_id, {"status": "not_found"})
+    return jsonify(job)
+
+
+@app.route('/login', methods=['GET', 'POST'])
+# ... (login function is unchanged)
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=username).first()
+        if user and user.check_password(password):
+            login_user(user)
+            return redirect(url_for('index'))
+        else:
+            flash('Invalid username or password.')
+    return render_template('login.html')
+
+
+@app.route('/logout')
+@login_required
+# ... (logout function is unchanged)
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
 
 @app.route('/')
 @login_required
 def index():
     return render_template('index.html')
-
-# --- FINAL INITIALIZATION BLOCK ---
-# This block runs when each instance of the app starts.
-with app.app_context():
-    print("Ensuring database tables exist...")
-    # This is safe to run every time. It will only create tables that don't exist.
-    db.create_all()
-    print("Tables created or already exist.")
-
-    # Check if any users exist before trying to add them.
-    if User.query.first() is None:
-        print("No users found. Seeding default users...")
-        DEFAULT_USERS = [
-            {'username': 'admin', 'password': 'admin'},
-            {'username': 'SSA', 'password': 'Gay'},
-            {'username': 'Ethos', 'password': 'Hasini'}
-        ]
-        for user_data in DEFAULT_USERS:
-            print(f"Creating default user: {user_data['username']}")
-            new_user = User(username=user_data['username'])
-            new_user.set_password(user_data['password'])
-            db.session.add(new_user)
-        db.session.commit()
-        print("Default users seeded.")
-    else:
-        print("Users already exist. Skipping seeding.")

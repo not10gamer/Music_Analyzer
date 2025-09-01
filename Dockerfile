@@ -26,5 +26,8 @@ COPY . .
 # Expose the port the app will run on
 EXPOSE 8080
 
-# The command to run the application using Gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--timeout", "120", "--workers", "1", "app:app"]
+# Make the startup script executable
+RUN chmod +x /app/start.sh
+
+# The command to run the application using the startup script
+CMD ["/app/start.sh"]

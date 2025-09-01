@@ -5,6 +5,17 @@ primary_region = "sin"
 
 [build]
 
+# This is the corrected health check section
+[checks]
+  [checks.alive_check]
+    type = "http"
+    interval = "15s"
+    timeout = "10s"
+    grace_period = "30s" # Increased grace period slightly for safety
+    method = "GET"
+    path = "/login"
+    protocol = "http"
+
 [http_service]
   internal_port = 8080
   force_https = true
