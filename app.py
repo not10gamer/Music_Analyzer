@@ -23,7 +23,7 @@ if not API_KEY:
     raise ValueError("Gemini API key not found. Please set it as an environment variable.")
 
 genai.configure(api_key=API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('gemini-2.5-flash-lite')
 
 # --- Flask App Initialization & Configuration ---
 app = Flask(__name__)
@@ -32,10 +32,12 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 if not app.config['SECRET_KEY']:
     raise ValueError("SECRET_KEY not found. Please set it as an environment variable.")
 
-# MODIFIED: Define the database path directly on the persistent disk root.
-# We no longer need an 'instance' subfolder.
-PERSISTENT_DISK_DIR = '/var/data'
-DB_PATH = os.path.join(PERSISTENT_DISK_DIR, 'users.db')
+# MODIFIED: Define a local path for the database since no persistent disk is used.
+# This will save the database in a folder named 'instance' inside your project directory.
+# This data WILL BE DELETED on every deploy.
+APP_ROOT = os.path.dirname(os.path.abspath(__file__))
+INSTANCE_PATH = os.path.join(APP_ROOT, 'instance')
+DB_PATH = os.path.join(INSTANCE_PATH, 'users.db')
 
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -68,7 +70,8 @@ with app.app_context():
     # Check if the database file already exists before trying to create tables
     if not os.path.exists(DB_PATH):
         print("Database not found. Initializing...")
-        # REMOVED: The os.makedirs() call is no longer needed.
+        # Create the 'instance' directory locally
+        os.makedirs(INSTANCE_PATH, exist_ok=True)
         # Create database tables
         db.create_all()
 
