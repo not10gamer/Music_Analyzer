@@ -32,10 +32,10 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 if not app.config['SECRET_KEY']:
     raise ValueError("SECRET_KEY not found. Please set it as an environment variable.")
 
-# MODIFIED: Define the persistent disk paths
+# MODIFIED: Define the database path directly on the persistent disk root.
+# We no longer need an 'instance' subfolder.
 PERSISTENT_DISK_DIR = '/var/data'
-INSTANCE_PATH = os.path.join(PERSISTENT_DISK_DIR, 'instance')
-DB_PATH = os.path.join(INSTANCE_PATH, 'users.db')
+DB_PATH = os.path.join(PERSISTENT_DISK_DIR, 'users.db')
 
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -63,15 +63,12 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-# --- NEW: Initialize the database at runtime ---
-# This code runs when the app starts. It checks if the database file exists on the
-# persistent disk. If not, it creates it and adds the default users.
+# --- Initialize the database at runtime ---
 with app.app_context():
     # Check if the database file already exists before trying to create tables
     if not os.path.exists(DB_PATH):
         print("Database not found. Initializing...")
-        # Create the 'instance' directory on the persistent disk
-        os.makedirs(INSTANCE_PATH, exist_ok=True)
+        # REMOVED: The os.makedirs() call is no longer needed.
         # Create database tables
         db.create_all()
 
