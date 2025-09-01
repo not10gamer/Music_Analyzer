@@ -23,26 +23,23 @@ if not API_KEY:
     raise ValueError("Gemini API key not found. Please set it as an environment variable.")
 
 genai.configure(api_key=API_KEY)
-model = genai.GenerativeModel('gemini-2.5-flash-lite')
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 # --- Flask App Initialization & Configuration ---
 app = Flask(__name__)
 
-# MODIFIED: Load SECRET_KEY from environment variables for security.
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 if not app.config['SECRET_KEY']:
     raise ValueError("SECRET_KEY not found. Please set it as an environment variable.")
 
-# MODIFIED: Configure database path for Render's persistent disk.
-# The disk will be mounted at '/var/data', and we'll store the db inside.
-# We also ensure the 'instance' directory exists.
+# MODIFIED: Define the persistent disk paths
 PERSISTENT_DISK_DIR = '/var/data'
 INSTANCE_PATH = os.path.join(PERSISTENT_DISK_DIR, 'instance')
-os.makedirs(INSTANCE_PATH, exist_ok=True)
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.join(INSTANCE_PATH, "users.db")}'
+DB_PATH = os.path.join(INSTANCE_PATH, 'users.db')
+
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# MODIFIED: UPLOAD_FOLDER should be a temporary directory.
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -66,13 +63,41 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+# --- NEW: Initialize the database at runtime ---
+# This code runs when the app starts. It checks if the database file exists on the
+# persistent disk. If not, it creates it and adds the default users.
+with app.app_context():
+    # Check if the database file already exists before trying to create tables
+    if not os.path.exists(DB_PATH):
+        print("Database not found. Initializing...")
+        # Create the 'instance' directory on the persistent disk
+        os.makedirs(INSTANCE_PATH, exist_ok=True)
+        # Create database tables
+        db.create_all()
+
+        DEFAULT_USERS = [
+            {'username': 'admin', 'password': 'admin'},
+            {'username': 'SSA', 'password': 'Gay'},
+            {'username': 'Ethos', 'password': 'Hasini'}
+        ]
+        for user_data in DEFAULT_USERS:
+            print(f"Creating default user: {user_data['username']}")
+            new_user = User(username=user_data['username'])
+            new_user.set_password(user_data['password'])
+            db.session.add(new_user)
+
+        db.session.commit()
+        print("Database initialization complete.")
+    else:
+        print("Database already exists. Skipping initialization.")
+
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+# --- All routes below this are unchanged ---
 
-# --- Authentication Routes (Unchanged) ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -94,8 +119,6 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-
-# --- Helper Function (Unchanged) ---
 def build_gemini_prompt(data):
     base_prompt = (
         "You are an expert music critic. Analyze the following musical submission. "
@@ -154,8 +177,6 @@ def build_gemini_prompt(data):
             f"{vocal_instruction}"
         )
 
-
-# --- Protected API Endpoint (Unchanged) ---
 @app.route('/analyze', methods=['POST'])
 @login_required
 def analyze_music():
@@ -214,13 +235,7 @@ def analyze_music():
         if os.path.exists(audio_path):
             os.remove(audio_path)
 
-
-# --- Protected Index Route (Unchanged) ---
 @app.route('/')
 @login_required
 def index():
     return render_template('index.html')
-
-
-# REMOVED: The __main__ block has been removed.
-# Database creation and user seeding will be handled by a build script.
