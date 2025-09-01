@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Music Analyzer AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4F46E5;
+            --background-color: #0B0B0F;
+            --text-color: #FFFFFF;
+            --card-bg: #121216;
+            --border-color: #3A3A40;
+            --accent-border-color: rgba(79, 70, 229, 0.3);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .auth-container {
+            background-color: var(--card-bg);
+            padding: 40px;
+            border-radius: 24px;
+            border: 1px solid var(--border-color);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--text-color) 0%, var(--primary-color) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 30px;
+        }
+        .form-group { text-align: left; margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 500; }
+        input {
+            width: 100%; padding: 12px 16px;
+            background: var(--background-color); border: 1px solid var(--border-color);
+            border-radius: 10px; color: var(--text-color); font-size: 1rem;
+            box-sizing: border-box; transition: all 0.3s ease;
+        }
+        input:focus {
+            outline: none; border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px var(--accent-border-color);
+        }
+        .flash-message {
+            background-color: #5c1a2d; border: 1px solid #be185d;
+            color: #fce7f3; padding: 12px;
+            border-radius: 10px; margin-bottom: 20px;
+        }
+        button {
+            width: 100%; padding: 14px;
+            background: var(--primary-color); color: white;
+            border: none; border-radius: 12px;
+            font-size: 1rem; font-weight: 600; cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        button:hover { transform: translateY(-2px); }
+        /* The .switch-link class can be removed if not used elsewhere */
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <h1>Welcome Back</h1>
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-message">{{ messages[0] }}</div>
+            {% endif %}
+        {% endwith %}
+        <form method="POST" action="{{ url_for('login') }}">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit">Login</button>
+        </form>
+        </div>
+</body>
+</html>

@@ -74,33 +74,77 @@
         .results-empty-state h2 { font-size: 1.5rem; color: var(--text-color); margin-bottom: 10px; }
         .results-panel.has-results .results-empty-state, .results-panel.is-loading .results-empty-state { opacity: 0; display: none; }
 
-        /* UPDATED: Reduced size and centered loader */
+        /* --- UPDATED: Loader Styling --- */
         .loader-container {
             display: none;
             position: absolute;
-            top: 50%;
-            left: 50%;
+            top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            width: 300px; /* Smaller width */
-            height: 300px; /* Smaller height */
-            justify-content: center;
-            align-items: center;
+            width: 300px; height: 300px;
+            justify-content: center; align-items: center;
             z-index: 10;
         }
         .results-panel.is-loading .loader-container { display: flex; }
         .loader-border { position: relative; width: 100%; height: 100%; border-radius: 24px; overflow: hidden; }
         .loader-border::before { content: ''; position: absolute; top: 50%; left: 50%; width: 200%; height: 200%; background: conic-gradient( from 0deg, var(--primary-color), var(--accent-color), var(--secondary-color), var(--accent-color), var(--primary-color)); animation: rotate 4s linear infinite; }
         .loader-border::after { content: ''; position: absolute; inset: 3px; background: var(--background-color); border-radius: 22px; }
-        @keyframes rotate { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+        .loader-content {
+            position: absolute; z-index: 1;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            text-align: center; color: var(--text-color-muted);
+        }
+        #loader-text { margin-top: 20px; font-size: 1rem; font-weight: 500; transition: opacity 0.5s ease; }
+        .sound-bars { display: flex; justify-content: center; align-items: flex-end; height: 60px; gap: 8px; }
+        .sound-bars .bar {
+            width: 10px;
+            height: 10%;
+            background: var(--primary-color);
+            border-radius: 4px;
+            animation: sound-wave 1.2s ease-in-out infinite;
+        }
+        .sound-bars .bar:nth-child(2) { animation-delay: -1.0s; }
+        .sound-bars .bar:nth-child(3) { animation-delay: -0.8s; }
+        .sound-bars .bar:nth-child(4) { animation-delay: -0.6s; }
+        .sound-bars .bar:nth-child(5) { animation-delay: -0.4s; }
 
-        .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 24px; padding: 30px; }
+        /* Card Styling */
+        .feedback-card {
+            opacity: 0; transform: translateY(20px);
+            animation: fadeInUp 0.6s ease forwards;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 24px; padding: 30px;
+        }
+        .feedback-score-card {
+            background: var(--primary-color); border: none; text-align: center;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            min-width: 180px;
+        }
+        .card-title {
+            font-size: 1rem; color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase; letter-spacing: 1px;
+            margin-bottom: 25px; text-align: center;
+        }
+        .feedback-score-card .score-value { font-size: 3.5rem; font-weight: 800; color: var(--text-color); line-height: 1; }
+        .feedback-score-card .score-summary { font-size: 0.95rem; color: rgba(255, 255, 255, 0.85); margin-top: 15px; line-height: 1.5; max-width: 400px; }
+        .feedback-content-card p { color: var(--text-color-muted); line-height: 1.7; font-size: 0.95rem; }
+        #chart-card .card-title, #tempo-chart-card .card-title {
+             background: linear-gradient(135deg, var(--text-color) 0%, var(--primary-color) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        #chart-container, #tempo-chart-container { min-height: 250px; }
 
+        /* Form and Input styling */
         .form-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
         .form-group label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem; color: var(--text-color-muted); }
         .form-group input, .form-group select { width: 100%; padding: 12px 16px; background: var(--background-color); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-color); font-size: 1rem; transition: all 0.3s ease; }
-        .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px var(--accent-border-color); }
+        .form-group input:not([type="checkbox"]):hover, .form-group select:hover, .file-input-wrapper:hover, .tag-input-container:hover { border-color: var(--primary-color); }
+        .form-group input:not([type="checkbox"]):focus, .form-group select:focus, .tag-input-container:focus-within { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px var(--accent-border-color); }
+        .form-group select { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23A9A9B3' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 1rem center; background-repeat: no-repeat; background-size: 1.2em; padding-right: 3em; }
         .file-input-wrapper { position: relative; width: 100%; height: 50px; background: var(--background-color); border: 1px solid var(--border-color); border-radius: 10px; display: flex; align-items: center; padding: 0 16px; transition: all 0.3s ease; cursor: pointer; }
-        .file-input-wrapper:hover { border-color: var(--primary-color); }
         .file-input-wrapper input[type="file"] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
         .file-input-label { color: var(--text-color-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .checkbox-group { display: flex; align-items: center; gap: 12px; }
@@ -111,35 +155,43 @@
         .cta-primary { padding: 16px 30px; border-radius: 12px; font-size: 1rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; justify-content: center; position: relative; overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease; background: var(--primary-color); color: #fff; border: none; box-shadow: 0 8px 32px rgba(79, 70, 229, 0.4); width: 100%; margin-top: 20px; cursor: pointer; }
         .cta-primary:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(79, 70, 229, 0.5); }
 
-        #results-container { display: none; grid-template-columns: 1.5fr 1fr; gap: 30px; height: 100%; width: 100%; z-index: 1; }
+        /* Layout */
+        #results-container {
+            display: none; grid-template-columns: 1.5fr 1fr;
+            gap: 30px; height: 100%; width: 100%; z-index: 1;
+        }
         .results-panel.has-results #results-container { display: grid; }
-
-        .results-feedback-col { display: grid; grid-template-rows: auto 1fr; gap: 30px; }
+        .results-feedback-col {
+            display: grid; grid-template-rows: auto 1fr; gap: 30px;
+        }
         .results-top-row { display: grid; grid-template-columns: auto 1fr; gap: 30px; }
-        .feedback-card { opacity: 0; transform: translateY(20px); animation: fadeInUp 0.6s ease forwards; }
-        .feedback-score-card { text-align: center; background: var(--primary-color); border: none; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; min-width: 180px; border-radius: 24px;}
-        .feedback-score-card .score-title { font-size: 1rem; color: rgba(255, 255, 255, 0.7); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
-        .feedback-score-card .score-value { font-size: 3.5rem; font-weight: 800; color: var(--text-color); line-height: 1; }
-        .score-tooltip { position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%); background: #000; color: #fff; padding: 10px 15px; border-radius: 8px; font-size: 0.9rem; width: 250px; text-align: center; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; pointer-events: none; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .feedback-score-card:hover .score-tooltip { opacity: 1; visibility: visible; }
-        .feedback-content-card h3 { font-size: 1.2rem; margin-bottom: 15px; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
-        .feedback-content-card p { color: var(--text-color-muted); line-height: 1.7; font-size: 0.95rem; }
-        #chart-card { display: flex; flex-direction: column; }
-        #chart-card h2 { font-size: 1.2rem; margin-bottom: 15px; background: linear-gradient(135deg, var(--text-color) 0%, var(--primary-color) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
-        #chart-container { flex-grow: 1; min-height: 250px; }
+        .results-graph-col { display: flex; flex-direction: column; gap: 30px; } /* Updated for multiple graphs */
 
-        .tag-input-container { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px; background: var(--background-color); border: 1px solid var(--border-color); border-radius: 10px; }
-        .tag { display: flex; align-items: center; background: var(--primary-color); padding: 5px 10px; border-radius: 6px; font-size: 0.9rem; }
-        .tag-remove-btn { background: none; border: none; color: #fff; margin-left: 8px; font-size: 1rem; cursor: pointer; }
-        #instrument-input { flex-grow: 1; background: transparent; border: none; outline: none; color: var(--text-color); min-width: 120px; }
+        /* Tag Input Styling */
+        .tag-input-container { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px; background: var(--background-color); border: 1px solid var(--border-color); border-radius: 10px; transition: all 0.3s ease; }
+        .tag { display: flex; align-items: center; background: var(--primary-color); padding: 5px 10px; border-radius: 6px; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease-in-out; animation: popIn 0.3s ease forwards; }
+        .tag.removing { animation: fadeOut 0.3s ease forwards; }
+        .tag:hover { transform: translateY(-2px); filter: brightness(1.15); }
+        .tag-remove-btn { background: none; border: none; color: #fff; margin-left: 8px; font-size: 1.2rem; cursor: pointer; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s ease, transform 0.2s ease; line-height: 1; }
+        .tag-remove-btn:hover { background-color: rgba(0, 0, 0, 0.2); transform: rotate(90deg); }
+        #instrument-input { flex-grow: 1; background: transparent; border: none; outline: none; color: var(--text-color); min-width: 120px; font-size: 1rem; padding: 4px; }
 
+        /* Keyframe animations */
+        @keyframes rotate { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes fadeOut { from { transform: scale(1); opacity: 1; } to { transform: scale(0.5); opacity: 0; } }
+        @keyframes sound-wave {
+            0% { height: 10%; }
+            50% { height: 100%; }
+            100% { height: 10%; }
+        }
 
         @media (max-width: 1024px) {
-            body { display: block; padding: 0; }
+            body { display: block; padding: 0; overflow: auto; }
             .app-container { grid-template-columns: 1fr; height: auto; min-height: 100vh; }
             .control-panel { border-right: none; border-bottom: 1px solid var(--border-color); }
-            .results-panel { padding: 20px; } /* Adjusted for mobile */
+            .results-panel { padding: 20px; }
             #results-container { grid-template-columns: 1fr; }
             .results-top-row { grid-template-columns: 1fr; }
         }
@@ -149,6 +201,10 @@
     <canvas id="procedural-background"></canvas>
     <div class="cursor-aura"></div>
     <div class="cursor-dot"></div>
+
+    <div style="position: absolute; top: 20px; right: 20px;">
+        <a href="{{ url_for('logout') }}" style="color: var(--text-color-muted); text-decoration: none; font-weight: 500;">Logout</a>
+    </div>
 
     <div class="app-container">
 
@@ -169,7 +225,7 @@
                         </div>
                         <div class="form-group"><label for="submission_type">Submission Type</label><select id="submission_type" name="submission_type" required><option value="Cover Song">Cover Song</option><option value="Original Composition">Original Composition</option><option value="Remix">Remix</option></select></div>
                         <div class="form-group"><label for="song">Song Title</label><input type="text" id="song" name="song" required placeholder="e.g., Wonderwall"></div>
-                        <div class="form-group"><label for="artist_or_genre">Artist / Genre</label><input type="text" id="artist_or_genre" name="artist_or_genre" required placeholder="e.g., Oasis / Indie Rock"></div>
+                        <div class="form-group"><label for="artist_or_genre">Artist / Genre</label><input type="text" id="artist_or_genre" name="artist_or_genre" required placeholder="e.g., Oasis"></div>
                         <div class="form-group checkbox-group"><input type="checkbox" id="vocals_present" name="vocals_present"><label for="vocals_present">This track includes vocals</label></div>
                     </div>
 
@@ -184,7 +240,17 @@
                 <h2>Your Analysis Will Appear Here</h2>
                 <p>Fill out the form and submit your audio file to begin.</p>
             </div>
-            <div class="loader-container"><div class="loader-border"></div></div>
+
+            <div class="loader-container">
+                <div class="loader-border"></div>
+                <div class="loader-content">
+                    <div class="sound-bars">
+                        <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                    </div>
+                    <span id="loader-text">Initializing...</span>
+                </div>
+            </div>
+
             <div id="results-container"></div>
         </main>
     </div>
@@ -192,7 +258,9 @@
     <script>
         'use strict';
 
-        let chart = null;
+        let harmonyChart = null;
+        let tempoChart = null;
+        let loaderInterval = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             initializeForm();
@@ -206,32 +274,51 @@
             const resultsPanel = document.getElementById('results-panel');
             const fileInput = document.getElementById('audio_file');
             const fileInputLabel = document.querySelector('.file-input-label');
+            const submissionTypeSelect = document.getElementById('submission_type');
+            const songInput = document.getElementById('song');
+            const songLabel = document.querySelector('label[for="song"]');
+            const artistGenreInput = document.getElementById('artist_or_genre');
+            const artistGenreLabel = document.querySelector('label[for="artist_or_genre"]');
+
+            const handleSubmissionTypeChange = () => {
+                const selectedType = submissionTypeSelect.value;
+                switch (selectedType) {
+                    case 'Original Composition':
+                        songLabel.textContent = 'Title of Piece'; songInput.placeholder = 'e.g., Midnight Serenade';
+                        artistGenreLabel.textContent = 'Genre / Mood'; artistGenreInput.placeholder = 'e.g., Ambient Lo-fi';
+                        break;
+                    case 'Remix':
+                        songLabel.textContent = 'Original Song Title'; songInput.placeholder = 'e.g., Blue Monday';
+                        artistGenreLabel.textContent = 'Remix Genre'; artistGenreInput.placeholder = 'e.g., Tech House';
+                        break;
+                    case 'Cover Song': default:
+                        songLabel.textContent = 'Song Title'; songInput.placeholder = 'e.g., Wonderwall';
+                        artistGenreLabel.textContent = 'Original Artist'; artistGenreInput.placeholder = 'e.g., Oasis';
+                        break;
+                }
+            };
+            submissionTypeSelect.addEventListener('change', handleSubmissionTypeChange);
+            handleSubmissionTypeChange();
 
             const tagInputContainer = document.getElementById('tag-input-container');
             const instrumentInput = document.getElementById('instrument-input');
             const hiddenInput = document.getElementById('instruments-hidden-input');
             let instruments = [];
-
-            const updateHiddenInput = () => {
-                hiddenInput.value = instruments.join(',');
-            };
-
+            const updateHiddenInput = () => { hiddenInput.value = instruments.join(','); };
             const createTag = (text) => {
                 const tag = document.createElement('div');
-                tag.className = 'tag';
-                tag.textContent = text;
+                tag.className = 'tag'; tag.textContent = text;
                 const removeBtn = document.createElement('button');
-                removeBtn.className = 'tag-remove-btn';
-                removeBtn.textContent = '×';
+                removeBtn.className = 'tag-remove-btn'; removeBtn.innerHTML = '&times;'; removeBtn.type = 'button';
                 removeBtn.onclick = () => {
                     instruments = instruments.filter(t => t !== text);
-                    tag.remove();
                     updateHiddenInput();
+                    tag.classList.add('removing');
+                    setTimeout(() => tag.remove(), 300);
                 };
                 tag.appendChild(removeBtn);
                 return tag;
             };
-
             instrumentInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && instrumentInput.value.trim() !== '') {
                     e.preventDefault();
@@ -251,37 +338,77 @@
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 if (instruments.length === 0 && instrumentInput.value.trim() !== '') {
-                    instruments.push(instrumentInput.value.trim());
+                    const newInstrument = instrumentInput.value.trim();
+                    instruments.push(newInstrument);
+                    const tagEl = createTag(newInstrument);
+                    tagInputContainer.insertBefore(tagEl, instrumentInput);
+                    instrumentInput.value = '';
                     updateHiddenInput();
                 }
-                if (instruments.length === 0) {
-                    alert('Please add at least one instrument.');
-                    return;
-                }
-
+                if (instruments.length === 0) { alert('Please add at least one instrument.'); return; }
                 submitBtn.style.display = 'none';
                 resultsPanel.classList.remove('has-results');
                 resultsPanel.classList.add('is-loading');
+                const loaderText = document.getElementById('loader-text');
+                const loadingMessages = ["Tuning instruments...", "Checking pitch accuracy...", "Analyzing rhythm...", "Evaluating harmony...", "Composing feedback..."];
+                let messageIndex = 0;
+                loaderText.textContent = loadingMessages[0];
+                if (loaderInterval) clearInterval(loaderInterval);
+                loaderInterval = setInterval(() => {
+                    messageIndex = (messageIndex + 1) % loadingMessages.length;
+                    loaderText.textContent = loadingMessages[messageIndex];
+                }, 2000);
                 try {
                     const response = await fetch('/analyze', { method: 'POST', body: new FormData(form), });
                     if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.error || 'An unknown error occurred.'); }
                     const data = await response.json();
-                    renderFeedback(data, () => { renderChart(data.radar_data, data.radar_labels, data.top_notes_indices); });
+                    renderFeedback(data, () => {
+                        renderHarmonyChart(data.radar_data, data.radar_labels, data.top_notes_indices);
+                        if (data.tempo_variation_data && data.tempo_variation_data.length > 1) {
+                           renderTempoChart(data.tempo_variation_data);
+                        }
+                    });
                     resultsPanel.classList.add('has-results');
                 } catch (error) { console.error('Analysis failed:', error); alert(`Error: ${error.message}`);
-                } finally { submitBtn.style.display = 'inline-flex'; resultsPanel.classList.remove('is-loading'); }
+                } finally {
+                    submitBtn.style.display = 'inline-flex';
+                    resultsPanel.classList.remove('is-loading');
+                    if (loaderInterval) clearInterval(loaderInterval);
+                }
             });
         }
 
         function renderFeedback(data, onRenderComplete) {
             const container = document.getElementById('results-container');
             const sections = parseFeedbackText(data.feedback_text);
-            const formatBold = (text) => text ? text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>') : 'No details available.';
-            const scoreHTML = `<div class="feedback-card feedback-score-card" style="animation-delay: 0.1s;"><div class="score-title">Overall Score</div><div class="score-value">${sections.score || 'N/A'}</div><div class="score-tooltip">${sections.summary || 'An AI-generated score based on your performance.'}</div></div>`;
-            const analysisHTML = `<div class="feedback-card feedback-content-card" style="animation-delay: 0.2s;"><h3>Detailed Analysis</h3><p>${formatBold(sections['## Detailed Analysis'])}</p></div>`;
-            const suggestionsHTML = `<div class="feedback-card feedback-content-card" style="animation-delay: 0.3s;"><h3>Actionable Suggestions</h3><p>${formatBold(sections['## Actionable Suggestions'])}</p></div>`;
-            const graphHTML = `<div class="feedback-card" id="chart-card" style="animation-delay: 0.4s;"><h2>Harmonic Fingerprint</h2><div id="chart-container"></div></div>`;
-            container.innerHTML = `<div class="results-feedback-col"><div class="results-top-row">${scoreHTML}${analysisHTML}</div>${suggestionsHTML}</div><div class="results-graph-col">${graphHTML}</div>`;
+            const formatText = (text) => {
+                if (!text) return 'No details available.';
+                return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/\n/g, '<br>');
+            };
+            const scoreHTML = `<div class="feedback-card feedback-score-card" style="animation-delay: 0.1s;"><div class="card-title">Overall Score</div><div class="score-value">${sections.score || 'N/A'}</div><p class="score-summary">${sections.summary || 'An AI-generated score based on your performance.'}</p></div>`;
+            const analysisHTML = `<div class="feedback-card feedback-content-card" style="animation-delay: 0.2s;"><div class="card-title">Detailed Analysis</div><p>${formatText(sections['## Detailed Analysis'])}</p></div>`;
+            const suggestionsHTML = `<div class="feedback-card feedback-content-card" style="animation-delay: 0.3s;"><div class="card-title">Actionable Suggestions</div><p>${formatText(sections['## Actionable Suggestions'])}</p></div>`;
+            const harmonyGraphHTML = `<div class="feedback-card" id="chart-card" style="animation-delay: 0.1s;"><div class="card-title">Harmonic Fingerprint</div><div id="chart-container"></div></div>`;
+
+            // --- UPDATED: Add Tempo Chart if data exists ---
+            let tempoGraphHTML = '';
+            if (data.tempo_variation_data && data.tempo_variation_data.length > 1) {
+                tempoGraphHTML = `<div class="feedback-card" id="tempo-chart-card" style="animation-delay: 0.2s;"><div class="card-title">Tempo Variation</div><div id="tempo-chart-container"></div></div>`;
+            }
+
+            container.innerHTML = `
+                <div class="results-feedback-col">
+                    <div class="results-top-row">
+                        ${scoreHTML}
+                        ${analysisHTML}
+                    </div>
+                    ${suggestionsHTML}
+                </div>
+                <div class="results-graph-col">
+                    ${harmonyGraphHTML}
+                    ${tempoGraphHTML}
+                </div>
+            `;
             if(onRenderComplete) { setTimeout(onRenderComplete, 0); }
         }
 
@@ -299,20 +426,18 @@
             if (sections['## Overall Score']) {
                 const scoreLines = sections['## Overall Score'].split('\n');
                 sections.score = scoreLines[0] || 'N/A';
-                sections.summary = scoreLines.slice(1).join(' ') || 'An AI-generated score based on your performance.';
+                sections.summary = scoreLines.slice(1).join(' ').trim() || 'An AI-generated score based on your performance.';
             }
             return sections;
         }
 
-        function renderChart(seriesData, labels, topNotesIndices = []) {
-            if(chart) { chart.destroy(); }
+        function renderHarmonyChart(seriesData, labels, topNotesIndices = []) {
+            if(harmonyChart) { harmonyChart.destroy(); }
             const chartContainer = document.querySelector("#chart-container");
             if (!chartContainer) return;
-
             const markerColors = new Array(12).fill('#fff');
             const highlightColor = '#FFD700';
             topNotesIndices.forEach(index => { markerColors[index] = highlightColor; });
-
             const options = {
                 series: [{ name: 'Pitch Class Prominence', data: seriesData }],
                 chart: { type: 'radar', height: '100%', background: 'transparent', toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
@@ -325,21 +450,47 @@
                 grid: { borderColor: 'var(--border-color)' },
                 tooltip: { y: { formatter: (value) => `${value.toFixed(2)}% prominence` } }
             };
-            chart = new ApexCharts(chartContainer, options);
-            chart.render();
+            harmonyChart = new ApexCharts(chartContainer, options);
+            harmonyChart.render();
+        }
+
+        // --- NEW: Function to render the tempo chart ---
+        function renderTempoChart(tempoData) {
+            if(tempoChart) { tempoChart.destroy(); }
+            const chartContainer = document.querySelector("#tempo-chart-container");
+            if (!chartContainer) return;
+            const options = {
+                series: [{ name: 'Tempo', data: tempoData }],
+                chart: { type: 'line', height: '100%', background: 'transparent', toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
+                theme: { mode: 'dark' },
+                stroke: { curve: 'smooth', width: 2, colors: [ 'var(--primary-color)' ] },
+                markers: { size: 0 },
+                xaxis: {
+                    type: 'numeric',
+                    title: { text: 'Time (seconds)', style: { color: 'var(--text-color-muted)', fontWeight: 400 } },
+                    labels: { style: { colors: 'var(--text-color-muted)' }, formatter: (val) => val.toFixed(1) }
+                },
+                yaxis: {
+                    title: { text: 'Tempo (BPM)', style: { color: 'var(--text-color-muted)', fontWeight: 400 } },
+                    labels: { style: { colors: 'var(--text-color-muted)' } }
+                },
+                grid: { borderColor: 'var(--border-color)' },
+                tooltip: {
+                    x: { formatter: (val) => `${val.toFixed(2)} s` },
+                    y: { formatter: (val) => `${val.toFixed(0)} BPM` }
+                }
+            };
+            tempoChart = new ApexCharts(chartContainer, options);
+            tempoChart.render();
         }
 
         function initializeInteractiveEffects() {
-            const cursorDot = document.querySelector('.cursor-dot');
-            const cursorAura = document.querySelector('.cursor-aura');
+            const cursorDot = document.querySelector('.cursor-dot'); const cursorAura = document.querySelector('.cursor-aura');
             if (!cursorDot || !cursorAura) return;
-
             let mouseX = 0, mouseY = 0, auraX = 0, auraY = 0;
             window.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
-
             const animateEffects = () => {
-                auraX += (mouseX - auraX) * 0.2;
-                auraY += (mouseY - auraY) * 0.2;
+                auraX += (mouseX - auraX) * 0.2; auraY += (mouseY - auraY) * 0.2;
                 cursorDot.style.transform = `translate(${mouseX - (cursorDot.offsetWidth / 2)}px, ${mouseY - (cursorDot.offsetHeight / 2)}px)`;
                 cursorAura.style.transform = `translate(${auraX - (cursorAura.offsetWidth / 2)}px, ${auraY - (cursorAura.offsetHeight / 2)}px)`;
                 requestAnimationFrame(animateEffects);
@@ -348,11 +499,9 @@
         }
 
         function initializeProceduralBackground() {
-            const canvas = document.getElementById('procedural-background');
-            if (!canvas) return;
+            const canvas = document.getElementById('procedural-background'); if (!canvas) return;
             const ctx = canvas.getContext('2d');
-            let blobs = [];
-            const blobCount = 5;
+            let blobs = []; const blobCount = 5;
             const setCanvasDimensions = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
             window.addEventListener('resize', setCanvasDimensions);
             class Blob {

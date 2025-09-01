@@ -1,0 +1,10 @@
+flask
+Flask-Login
+Flask-SQLAlchemy
+google-generativeai
+python-dotenv
+librosa
+matplotlib
+numpy
+werkzeug
+gunicorn
