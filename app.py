@@ -23,7 +23,7 @@ if not API_KEY:
     raise ValueError("Gemini API key not found. Please set it as an environment variable.")
 
 genai.configure(api_key=API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('gemini-2.5-flash-lite')
 
 # --- Flask App Initialization & Configuration ---
 app = Flask(__name__)
