@@ -64,12 +64,18 @@ class User(UserMixin, db.Model):
         return check_password_hash(self.password_hash, password)
 
 # MODIFIED: Database logic is now inside a dedicated command
+# In app.py, replace the init-db-command function
 @app.cli.command("init-db")
 def init_db_command():
-    """Creates the database tables and populates them with default users."""
-    if not os.path.exists(DB_PATH):
-        print("Database not found. Initializing...")
-        db.create_all()
+    """Creates tables and seeds default users if necessary."""
+    print("Ensuring database tables exist...")
+    # This is safe to run every time. It will only create tables that don't exist.
+    db.create_all()
+    print("Tables created or already exist.")
+
+    # Check if any users exist before trying to add them.
+    if User.query.first() is None:
+        print("No users found. Seeding default users...")
         DEFAULT_USERS = [
             {'username': 'admin', 'password': 'admin'},
             {'username': 'SSA', 'password': 'Gay'},
@@ -81,9 +87,9 @@ def init_db_command():
             new_user.set_password(user_data['password'])
             db.session.add(new_user)
         db.session.commit()
-        print("Database initialization complete.")
+        print("Default users seeded.")
     else:
-        print("Database already exists. Skipping initialization.")
+        print("Users already exist. Skipping seeding.")
 
 
 @login_manager.user_loader
