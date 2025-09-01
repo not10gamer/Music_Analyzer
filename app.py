@@ -23,7 +23,7 @@ if not API_KEY:
     raise ValueError("Gemini API key not found. Please set it as an environment variable.")
 
 genai.configure(api_key=API_KEY)
-model = genai.GenerativeModel('gemini-2.5-flash-lite')
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 # --- Flask App Initialization & Configuration ---
 app = Flask(__name__)
@@ -32,12 +32,10 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 if not app.config['SECRET_KEY']:
     raise ValueError("SECRET_KEY not found. Please set it as an environment variable.")
 
-# MODIFIED: Define a local path for the database since no persistent disk is used.
-# This will save the database in a folder named 'instance' inside your project directory.
-# This data WILL BE DELETED on every deploy.
-APP_ROOT = os.path.dirname(os.path.abspath(__file__))
-INSTANCE_PATH = os.path.join(APP_ROOT, 'instance')
-DB_PATH = os.path.join(INSTANCE_PATH, 'users.db')
+DATA_DIR = '/data'
+DB_PATH = os.path.join(DATA_DIR, 'users.db')
+
+os.makedirs(DATA_DIR, exist_ok=True)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -65,16 +63,13 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-# --- Initialize the database at runtime ---
-with app.app_context():
-    # Check if the database file already exists before trying to create tables
+# MODIFIED: Database logic is now inside a dedicated command
+@app.cli.command("init-db")
+def init_db_command():
+    """Creates the database tables and populates them with default users."""
     if not os.path.exists(DB_PATH):
         print("Database not found. Initializing...")
-        # Create the 'instance' directory locally
-        os.makedirs(INSTANCE_PATH, exist_ok=True)
-        # Create database tables
         db.create_all()
-
         DEFAULT_USERS = [
             {'username': 'admin', 'password': 'admin'},
             {'username': 'SSA', 'password': 'Gay'},
@@ -85,7 +80,6 @@ with app.app_context():
             new_user = User(username=user_data['username'])
             new_user.set_password(user_data['password'])
             db.session.add(new_user)
-
         db.session.commit()
         print("Database initialization complete.")
     else:
@@ -177,7 +171,6 @@ def build_gemini_prompt(data):
             f"{vocal_instruction}"
         )
 
-
 @app.route('/analyze', methods=['POST'])
 @login_required
 def analyze_music():
@@ -198,82 +191,43 @@ def analyze_music():
     audio_file.save(audio_path)
 
     try:
-        # --- MEMORY OPTIMIZATION START ---
-        # Process the audio in chunks to reduce memory usage.
-        # This is more complex than librosa.load() but necessary for low-memory environments.
-
-        # Get the sample rate and total duration without loading the full file
-        sr = librosa.get_samplerate(path=audio_path)
-        duration = librosa.get_duration(path=audio_path)
-
-        # Set up variables for streaming analysis
-        block_length = int(sr * 5)  # Process in 5-second blocks
-        hop_length = block_length // 4
-
-        tempo_sum = 0
-        chroma_sum = np.zeros(12)
-        onset_env_sum = []
-        block_count = 0
-
-        # Create a stream to read the audio in chunks
-        stream = librosa.stream(
-            audio_path,
-            block_length=block_length,
-            frame_length=4096,
-            hop_length=2048
-        )
-
-        for y_block in stream:
-            # Estimate tempo for the block
-            onset_env = librosa.onset.onset_detect(y=y_block, sr=sr, wait=1, pre_avg=1, post_avg=1, pre_max=1,
-                                                   post_max=1)
-            if len(onset_env) > 1:
-                tempo_block = librosa.beat.tempo(onset_envelope=librosa.onset.onset_strength(y=y_block, sr=sr), sr=sr)[
-                    0]
-                tempo_sum += tempo_block
-
-            # Accumulate chroma features
-            chroma_block = librosa.feature.chroma_stft(y=y_block, sr=sr)
-            chroma_sum += np.mean(chroma_block, axis=1)
-
-            block_count += 1
-
-        if block_count == 0:
-            return jsonify({"error": "Audio file is too short or could not be processed."}), 400
-
-        # Calculate averages from the accumulated values
-        avg_tempo = tempo_sum / block_count
-        avg_chroma = chroma_sum / block_count
-
-        radar_data = (avg_chroma / avg_chroma.max()) * 100 if avg_chroma.max() > 0 else avg_chroma
+        y, sr = librosa.load(audio_path, sr=None)
+        tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
+        chroma = librosa.feature.chroma_stft(y=y, sr=sr)
+        radar_data = np.mean(chroma, axis=1)
+        if radar_data.max() > 0:
+            radar_data = (radar_data / radar_data.max()) * 100
         radar_labels = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
         top_notes_indices = np.argsort(radar_data)[-3:].tolist()
         top_notes_names = [radar_labels[i] for i in top_notes_indices]
-
-        # Note: Tempo variation analysis is complex with streaming and is omitted for this optimization.
-        # --- MEMORY OPTIMIZATION END ---
-
+        onsets = librosa.onset.onset_detect(y=y, sr=sr, units='time')
+        tempo_variation_data = []
+        if len(onsets) > 2:
+            iois = np.diff(onsets)
+            iois = iois[iois > 0.01]
+            tempi = 60.0 / iois
+            tempi = np.clip(tempi, 40, 240)
+            time_stamps = onsets[:len(tempi)]
+            tempo_variation_data = np.vstack((time_stamps, tempi)).T.tolist()
         submission_data = {
             "type": request.form['submission_type'],
             "instrument": request.form['instruments'],
             "song": request.form['song'],
             "artist_or_genre": request.form['artist_or_genre'],
-            "tempo": f"{avg_tempo:.2f} BPM",
+            "tempo": f"{tempo.item():.2f} BPM",
             "vocals_present": request.form.get('vocals_present') == 'on',
             "top_notes": top_notes_names
         }
-
         prompt = build_gemini_prompt(submission_data)
         response = model.generate_content(prompt)
         feedback_text = response.text
-
         return jsonify({
             "feedback_text": feedback_text,
             "radar_data": radar_data.tolist(),
             "radar_labels": radar_labels,
             "top_notes_indices": top_notes_indices,
-            "estimated_tempo": f"{avg_tempo:.2f} BPM",
-            "tempo_variation_data": []  # Tempo variation is disabled in this memory-optimized version
+            "estimated_tempo": f"{tempo.item():.2f} BPM",
+            "tempo_variation_data": tempo_variation_data
         })
     except Exception as e:
         import traceback
