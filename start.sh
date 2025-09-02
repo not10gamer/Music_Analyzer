@@ -3,17 +3,39 @@
 # Exit on error
 set -e
 
-# This is the database file the app will create on its first run
-DB_FILE="/data/users.db"
+# Create the /data directory if it doesn't exist.
+# This ensures the directory is available before the Python script runs.
+mkdir -p /data
 
-# Wait for the database file to exist.
-# The `ls` command will fail until the volume is mounted and the app has created the DB.
-# We loop until it succeeds.
-until ls "$DB_FILE" >/dev/null 2>&1; do
-  echo "Waiting for database file to be created by the app..."
-  sleep 1
-done
+# Run a simple Python script inline to initialize the database
+# This is more direct than calling a separate file.
+python -c "
+import os
+from app import app, db, User
 
-echo "Database file found. Starting Gunicorn."
-# Start the Gunicorn web server
-gunicorn --bind 0.0.0.0:8080 --timeout 120 --workers 1 app:app
+print('Release command started: Initializing database...')
+
+with app.app_context():
+    print('Ensuring database tables exist...')
+    db.create_all()
+    print('Tables created or already exist.')
+
+    if User.query.first() is None:
+        print('No users found. Seeding default users...')
+        DEFAULT_USERS = [
+            {'username': 'admin', 'password': 'admin'},
+            {'username': 'SSA', 'password': 'Gay'},
+            {'username': 'Ethos', 'password': 'Hasini'}
+        ]
+        for user_data in DEFAULT_USERS:
+            print(f'Creating default user: {user_data[\"username\"]}')
+            new_user = User(username=user_data['username'])
+            new_user.set_password(user_data['password'])
+            db.session.add(new_user)
+        db.session.commit()
+        print('Default users seeded.')
+    else:
+        print('Users already exist. Skipping seeding.')
+
+print('Release command finished: Database is ready.')
+"

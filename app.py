@@ -4,7 +4,8 @@ import os
 import uuid
 import hashlib
 import threading
-from flask import (Flask, request, jsonify, render_template, redirect, url_for, flash)
+from flask import (Flask, request, jsonify, render_template, redirect, url_for,
+                   flash)
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import google.generativeai as genai
@@ -13,7 +14,8 @@ import numpy as np
 from dotenv import load_dotenv
 
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import (LoginManager, UserMixin, login_user, logout_user, login_required, current_user)
+from flask_login import (LoginManager, UserMixin, login_user, logout_user,
+                         login_required, current_user)
 
 # --- Configuration ---
 load_dotenv()
@@ -23,63 +25,49 @@ if not API_KEY:
     raise ValueError("Gemini API key not found. Please set it as an environment variable.")
 
 genai.configure(api_key=API_KEY)
+# MODIFICATION: Changed model to gemini-2.5-flash-lite as requested
 model = genai.GenerativeModel('gemini-2.5-flash-lite')
 
 # --- Flask App Initialization & Configuration ---
 app = Flask(__name__)
+
+# In-memory stores for caching and tracking background jobs
 analysis_cache = {}
-background_jobs = {}  # For async tasks
+background_jobs = {}
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 if not app.config['SECRET_KEY']:
     raise ValueError("SECRET_KEY not found. Please set it as an environment variable.")
 
+# Configure database path for the persistent volume on Fly.io
 DATA_DIR = '/data'
 DB_PATH = os.path.join(DATA_DIR, 'users.db')
-
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# Configure a temporary folder for file uploads
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# --- Database and Login Manager Setup ---
 db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
 
+# --- User Database Model ---
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
     password_hash = db.Column(db.String(256))
 
-    def set_password(self, password): self.password_hash = generate_password_hash(password)
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
 
-    def check_password(self, password): return check_password_hash(self.password_hash, password)
-
-
-@app.cli.command("init-db")
-def init_db_command():
-    print("Ensuring database tables exist...")
-    db.create_all()
-    print("Tables created or already exist.")
-    if User.query.first() is None:
-        print("No users found. Seeding default users...")
-        DEFAULT_USERS = [
-            {'username': 'admin', 'password': 'admin'},
-            {'username': 'SSA', 'password': 'Gay'},
-            {'username': 'Ethos', 'password': 'Hasini'}
-        ]
-        for user_data in DEFAULT_USERS:
-            new_user = User(username=user_data['username'])
-            new_user.set_password(user_data['password'])
-            db.session.add(new_user)
-        db.session.commit()
-        print("Default users seeded.")
-    else:
-        print("Users already exist. Skipping seeding.")
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 
 @login_manager.user_loader
@@ -87,8 +75,8 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
+# --- Helper Function to Build Prompt for Gemini ---
 def build_gemini_prompt(data):
-    # ... (this function is unchanged)
     base_prompt = (
         "You are an expert music critic. Analyze the following musical submission. "
         "Provide clear, constructive feedback. Use markdown for emphasis (e.g., **key point** or *word*). "
@@ -101,7 +89,6 @@ def build_gemini_prompt(data):
         "## Actionable Suggestions\n"
         "(Your specific tips for improvement here)"
     )
-    # ... (rest of the function is unchanged)
     vocal_instruction = ""
     if data.get("vocals_present"):
         vocal_instruction = (
@@ -148,13 +135,19 @@ def build_gemini_prompt(data):
         )
 
 
+# --- Background Task for Heavy Processing ---
 def run_analysis_in_background(job_id, audio_path, submission_data_in, file_hash):
     """This function contains the heavy work and is run in a separate thread."""
     try:
         # 1. Perform audio analysis (CPU intensive)
-        y, sr = librosa.load(audio_path, sr=None)
+        # MODIFICATION: Re-enabled downsampling to prevent timeouts and 500 errors.
+        sr_target = 44100
+        y, sr = librosa.load(audio_path, sr=sr_target)
 
+        # Overall Tempo
         tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
+
+        # Harmony/Pitch Class Prominence (Radar Chart)
         chroma = librosa.feature.chroma_stft(y=y, sr=sr)
         radar_data = np.mean(chroma, axis=1)
         if radar_data.max() > 0:
@@ -163,7 +156,26 @@ def run_analysis_in_background(job_id, audio_path, submission_data_in, file_hash
         top_notes_indices = np.argsort(radar_data)[-3:].tolist()
         top_notes_names = [radar_labels[i] for i in top_notes_indices]
 
-        # Update submission_data with analysis results
+        # Tempo Variation Over Time
+        onset_env = librosa.onset.onset_detect(y=y, sr=sr)
+        if len(y) > sr * 120:
+            y_tempo = y[:sr*120]
+        else:
+            y_tempo = y
+        c_tempo = librosa.beat.tempo(y=y_tempo, sr=sr, aggregate=None)
+        times = librosa.times_like(c_tempo, sr=sr)
+        tempo_variation_data = [{"x": t, "y": b} for t, b in zip(times, c_tempo)]
+
+        # Pitch Class Prominence Over Time
+        frame_length = 2048
+        hop_length = 512
+        chromagram = librosa.feature.chroma_stft(y=y, sr=sr, hop_length=hop_length, n_fft=frame_length)
+        dominant_pitch_indices = np.argmax(chromagram, axis=0)
+        dominant_pitch_data = []
+        for i, idx in enumerate(dominant_pitch_indices):
+            time_point = librosa.frames_to_time(i, sr=sr, hop_length=hop_length)
+            dominant_pitch_data.append({"x": time_point, "y": radar_labels[idx]})
+
         submission_data = submission_data_in.copy()
         submission_data["tempo"] = f"{tempo.item():.2f} BPM"
         submission_data["top_notes"] = top_notes_names
@@ -180,20 +192,23 @@ def run_analysis_in_background(job_id, audio_path, submission_data_in, file_hash
             "radar_labels": radar_labels,
             "top_notes_indices": top_notes_indices,
             "estimated_tempo": f"{tempo.item():.2f} BPM",
-            "tempo_variation_data": []  # Disabled in this version for simplicity
+            "tempo_variation_data": tempo_variation_data,
+            "dominant_pitch_data": dominant_pitch_data,
+            "pitch_labels": radar_labels
         }
 
         analysis_cache[file_hash] = result
         background_jobs[job_id] = {"status": "complete", "result": result}
 
     except Exception as e:
+        print(f"Error in background task for job {job_id}: {e}")
         background_jobs[job_id] = {"status": "error", "message": str(e)}
     finally:
         # 4. Clean up the temporary audio file
         if os.path.exists(audio_path):
             os.remove(audio_path)
 
-
+# --- ROUTES START HERE ---
 @app.route('/analyze', methods=['POST'])
 @login_required
 def analyze_music():
@@ -204,12 +219,9 @@ def analyze_music():
     audio_bytes = audio_file.read()
     file_hash = hashlib.md5(audio_bytes).hexdigest()
     if file_hash in analysis_cache:
-        print(f"Returning cached result for file hash: {file_hash}")
-        # Return a completed job structure for consistency with async flow
         return jsonify({"status": "cached", "result": analysis_cache[file_hash]})
 
     audio_file.seek(0)
-
     unique_id = str(uuid.uuid4())
     filename = secure_filename(audio_file.filename)
     audio_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{unique_id}_{filename}")
@@ -222,14 +234,10 @@ def analyze_music():
         "artist_or_genre": request.form['artist_or_genre'],
         "vocals_present": request.form.get('vocals_present') == 'on',
     }
-
     job_id = unique_id
     background_jobs[job_id] = {"status": "processing"}
-
-    # Start the analysis in a background thread
     thread = threading.Thread(target=run_analysis_in_background, args=(job_id, audio_path, submission_data, file_hash))
     thread.start()
-
     return jsonify({"status": "processing", "job_id": job_id})
 
 
@@ -241,7 +249,6 @@ def get_status(job_id):
 
 
 @app.route('/login', methods=['GET', 'POST'])
-# ... (login function is unchanged)
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
@@ -259,7 +266,6 @@ def login():
 
 @app.route('/logout')
 @login_required
-# ... (logout function is unchanged)
 def logout():
     logout_user()
     return redirect(url_for('login'))
@@ -269,3 +275,4 @@ def logout():
 @login_required
 def index():
     return render_template('index.html')
+

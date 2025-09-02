@@ -24,9 +24,7 @@
             --border-color: #3A3A40;
             --accent-border-color: rgba(79, 70, 229, 0.3);
         }
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
         body {
             font-family: 'Inter', sans-serif;
             color: var(--text-color);
@@ -36,108 +34,98 @@
             position: relative;
             cursor: none;
         }
-
         ::-webkit-scrollbar { width: 12px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background-color: var(--border-color); border-radius: 10px; border: 3px solid var(--background-color); }
         ::-webkit-scrollbar-thumb:hover { background-color: var(--primary-color); }
-        .cursor-dot, .cursor-aura { position: fixed; top: 0; left: 0; pointer-events: none; border-radius: 50%; z-index: 9999; transform: translate(-50%, -50%); }
+        .cursor-dot, .cursor-aura {
+            position: fixed;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+        }
         .cursor-dot { width: 8px; height: 8px; background-color: var(--primary-color); }
         .cursor-aura { width: 40px; height: 40px; background-color: rgba(79, 70, 229, 0.1); border: 1px solid var(--accent-border-color); }
         a, button, input, select { cursor: none; }
-
         #procedural-background { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
-
         .app-container { display: grid; grid-template-columns: 450px 1fr; height: 100vh; width: 100vw; }
-
-        .control-panel {
-            padding: 40px;
-            display: flex;
-            overflow-y: auto;
-            border-right: 1px solid var(--border-color);
-        }
-        .results-panel {
-            padding: 40px;
-            overflow-y: auto;
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
+        .control-panel { padding: 40px; display: flex; overflow-y: auto; border-right: 1px solid var(--border-color); }
+        .results-panel { padding: 40px; overflow-y: auto; position: relative; display: flex; justify-content: center; align-items: center; }
         .control-panel-content { width: 100%; }
         .control-panel h1 { font-size: 2.5rem; font-weight: 800; line-height: 1.2; margin-bottom: 15px; background: linear-gradient(135deg, var(--text-color) 0%, var(--primary-color) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .control-panel p { font-size: 1rem; color: var(--text-color-muted); margin-bottom: 30px; }
-
         .results-empty-state { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; width: 100%; text-align: center; color: var(--text-color-muted); transition: opacity 0.5s ease; z-index: 1; }
         .results-empty-state svg { width: 80px; height: 80px; margin-bottom: 20px; stroke: var(--border-color); }
         .results-empty-state h2 { font-size: 1.5rem; color: var(--text-color); margin-bottom: 10px; }
         .results-panel.has-results .results-empty-state, .results-panel.is-loading .results-empty-state { opacity: 0; display: none; }
-
-        /* --- UPDATED: Loader Styling --- */
         .loader-container {
             display: none;
             position: absolute;
-            top: 50%; left: 50%;
+            top: 50%;
+            left: 50%;
             transform: translate(-50%, -50%);
-            width: 300px; height: 300px;
-            justify-content: center; align-items: center;
+            width: 300px;
+            height: 300px;
+            justify-content: center;
+            align-items: center;
             z-index: 10;
+            flex-direction: column;
+            text-align: center;
         }
         .results-panel.is-loading .loader-container { display: flex; }
-        .loader-border { position: relative; width: 100%; height: 100%; border-radius: 24px; overflow: hidden; }
-        .loader-border::before { content: ''; position: absolute; top: 50%; left: 50%; width: 200%; height: 200%; background: conic-gradient( from 0deg, var(--primary-color), var(--accent-color), var(--secondary-color), var(--accent-color), var(--primary-color)); animation: rotate 4s linear infinite; }
-        .loader-border::after { content: ''; position: absolute; inset: 3px; background: var(--background-color); border-radius: 22px; }
         .loader-content {
-            position: absolute; z-index: 1;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            text-align: center; color: var(--text-color-muted);
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: var(--text-color-muted);
+            animation: fadeIn 0.5s ease forwards;
         }
         #loader-text { margin-top: 20px; font-size: 1rem; font-weight: 500; transition: opacity 0.5s ease; }
-        .sound-bars { display: flex; justify-content: center; align-items: flex-end; height: 60px; gap: 8px; }
+        .sound-bars {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            height: 60px;
+            gap: 8px;
+            animation: fadeIn 0.8s ease-out;
+        }
         .sound-bars .bar {
             width: 10px;
             height: 10%;
-            background: var(--primary-color);
+            background: linear-gradient(to bottom, var(--primary-color), var(--secondary-color));
             border-radius: 4px;
-            animation: sound-wave 1.2s ease-in-out infinite;
+            animation: sound-wave 1.2s ease-in-out infinite, bar-fade 0.8s forwards;
         }
-        .sound-bars .bar:nth-child(2) { animation-delay: -1.0s; }
-        .sound-bars .bar:nth-child(3) { animation-delay: -0.8s; }
-        .sound-bars .bar:nth-child(4) { animation-delay: -0.6s; }
-        .sound-bars .bar:nth-child(5) { animation-delay: -0.4s; }
-
-        /* Card Styling */
+        .sound-bars .bar:nth-child(2) { animation-delay: -1.0s, 0.1s; }
+        .sound-bars .bar:nth-child(3) { animation-delay: -0.8s, 0.2s; }
+        .sound-bars .bar:nth-child(4) { animation-delay: -0.6s, 0.3s; }
+        .sound-bars .bar:nth-child(5) { animation-delay: -0.4s, 0.4s; }
         .feedback-card {
-            opacity: 0; transform: translateY(20px);
-            animation: fadeInUp 0.6s ease forwards;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 24px; padding: 30px;
+            opacity: 0; transform: translateY(20px); animation: fadeInUp 0.6s ease forwards; background: var(--card-bg);
+            border: 1px solid var(--border-color); border-radius: 24px; padding: 30px;
         }
         .feedback-score-card {
-            background: var(--primary-color); border: none; text-align: center;
-            display: flex; flex-direction: column;
-            justify-content: center; align-items: center;
-            min-width: 180px;
+            background: var(--primary-color); border: none; text-align: center; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; min-width: 180px;
         }
         .card-title {
-            font-size: 1rem; color: rgba(255, 255, 255, 0.7);
-            text-transform: uppercase; letter-spacing: 1px;
+            font-size: 1rem; color: rgba(255, 255, 255, 0.7); text-transform: uppercase; letter-spacing: 1px;
             margin-bottom: 25px; text-align: center;
         }
         .feedback-score-card .score-value { font-size: 3.5rem; font-weight: 800; color: var(--text-color); line-height: 1; }
         .feedback-score-card .score-summary { font-size: 0.95rem; color: rgba(255, 255, 255, 0.85); margin-top: 15px; line-height: 1.5; max-width: 400px; }
         .feedback-content-card p { color: var(--text-color-muted); line-height: 1.7; font-size: 0.95rem; }
-        #chart-card .card-title, #tempo-chart-card .card-title {
-             background: linear-gradient(135deg, var(--text-color) 0%, var(--primary-color) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        #chart-card .card-title, #tempo-chart-card .card-title, #dominant-pitch-chart-card .card-title {
+             background: linear-gradient(135deg, var(--text-color) 0%, var(--primary-color) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
-        #chart-container, #tempo-chart-container { min-height: 250px; }
-
-        /* Form and Input styling */
+        #chart-container, #tempo-chart-container, #dominant-pitch-chart-container { min-height: 250px; }
         .form-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
         .form-group label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem; color: var(--text-color-muted); }
         .form-group input, .form-group select { width: 100%; padding: 12px 16px; background: var(--background-color); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-color); font-size: 1rem; transition: all 0.3s ease; }
@@ -154,20 +142,11 @@
         .checkbox-group input[type="checkbox"]:checked::after { content: '✔'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 14px; }
         .cta-primary { padding: 16px 30px; border-radius: 12px; font-size: 1rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; justify-content: center; position: relative; overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease; background: var(--primary-color); color: #fff; border: none; box-shadow: 0 8px 32px rgba(79, 70, 229, 0.4); width: 100%; margin-top: 20px; cursor: pointer; }
         .cta-primary:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(79, 70, 229, 0.5); }
-
-        /* Layout */
-        #results-container {
-            display: none; grid-template-columns: 1.5fr 1fr;
-            gap: 30px; height: 100%; width: 100%; z-index: 1;
-        }
+        #results-container { display: none; grid-template-columns: 1.5fr 1fr; gap: 30px; height: 100%; width: 100%; z-index: 1; }
         .results-panel.has-results #results-container { display: grid; }
-        .results-feedback-col {
-            display: grid; grid-template-rows: auto 1fr; gap: 30px;
-        }
+        .results-feedback-col { display: grid; grid-template-rows: auto 1fr; gap: 30px; }
         .results-top-row { display: grid; grid-template-columns: auto 1fr; gap: 30px; }
-        .results-graph-col { display: flex; flex-direction: column; gap: 30px; } /* Updated for multiple graphs */
-
-        /* Tag Input Styling */
+        .results-graph-col { display: flex; flex-direction: column; gap: 30px; }
         .tag-input-container { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px; background: var(--background-color); border: 1px solid var(--border-color); border-radius: 10px; transition: all 0.3s ease; }
         .tag { display: flex; align-items: center; background: var(--primary-color); padding: 5px 10px; border-radius: 6px; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease-in-out; animation: popIn 0.3s ease forwards; }
         .tag.removing { animation: fadeOut 0.3s ease forwards; }
@@ -175,18 +154,13 @@
         .tag-remove-btn { background: none; border: none; color: #fff; margin-left: 8px; font-size: 1.2rem; cursor: pointer; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s ease, transform 0.2s ease; line-height: 1; }
         .tag-remove-btn:hover { background-color: rgba(0, 0, 0, 0.2); transform: rotate(90deg); }
         #instrument-input { flex-grow: 1; background: transparent; border: none; outline: none; color: var(--text-color); min-width: 120px; font-size: 1rem; padding: 4px; }
-
-        /* Keyframe animations */
         @keyframes rotate { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         @keyframes fadeOut { from { transform: scale(1); opacity: 1; } to { transform: scale(0.5); opacity: 0; } }
-        @keyframes sound-wave {
-            0% { height: 10%; }
-            50% { height: 100%; }
-            100% { height: 10%; }
-        }
-
+        @keyframes sound-wave { 0% { height: 10%; } 50% { height: 100%; } 100% { height: 10%; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes bar-fade { from { opacity: 0; } to { opacity: 1; } }
         @media (max-width: 1024px) {
             body { display: block; padding: 0; overflow: auto; }
             .app-container { grid-template-columns: 1fr; height: auto; min-height: 100vh; }
@@ -202,12 +176,11 @@
     <div class="cursor-aura"></div>
     <div class="cursor-dot"></div>
 
-    <div style="position: absolute; top: 20px; right: 20px;">
-        <a href="{{ url_for('logout') }}" style="color: var(--text-color-muted); text-decoration: none; font-weight: 500;">Logout</a>
+    <div style="position: absolute; top: 20px; right: 20px; z-index: 10000;">
+        <a href="/logout" style="color: var(--text-color-muted); text-decoration: none; font-weight: 500;">Logout</a>
     </div>
 
     <div class="app-container">
-
         <aside class="control-panel">
             <div class="control-panel-content">
                 <h1>Music Analyzer AI</h1>
@@ -228,7 +201,6 @@
                         <div class="form-group"><label for="artist_or_genre">Artist / Genre</label><input type="text" id="artist_or_genre" name="artist_or_genre" required placeholder="e.g., Oasis"></div>
                         <div class="form-group checkbox-group"><input type="checkbox" id="vocals_present" name="vocals_present"><label for="vocals_present">This track includes vocals</label></div>
                     </div>
-
                     <button type="submit" id="submit-btn" class="cta-primary">Analyze My Music</button>
                 </form>
             </div>
@@ -242,7 +214,6 @@
             </div>
 
             <div class="loader-container">
-                <div class="loader-border"></div>
                 <div class="loader-content">
                     <div class="sound-bars">
                         <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
@@ -259,8 +230,9 @@
         'use strict';
 
         let harmonyChart = null;
-        let tempoChart = null;
-        let pollingInterval = null; // To store the setInterval ID
+        let tempoVariationChart = null;
+        let dominantPitchChart = null;
+        let pollingInterval = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             initializeForm();
@@ -268,104 +240,62 @@
             initializeInteractiveEffects();
         });
 
-        // --- NEW: Function to handle polling for results ---
         function pollForResult(jobId) {
-            if (pollingInterval) clearInterval(pollingInterval); // Clear any previous polling
+            if (pollingInterval) clearInterval(pollingInterval);
 
             const loaderText = document.getElementById('loader-text');
-            const loadingMessages = ["Tuning instruments...", "Checking pitch accuracy...", "Analyzing rhythm...", "Evaluating harmony...", "Composing feedback..."];
+            const loadingMessages = ["Tuning instruments...", "Checking pitch...", "Analyzing rhythm...", "Evaluating harmony...", "Composing feedback..."];
             let messageIndex = 0;
-            loaderText.textContent = loadingMessages[0];
+            if (loaderText) {
+                loaderText.textContent = loadingMessages[0];
+            }
 
             pollingInterval = setInterval(async () => {
                 try {
                     const response = await fetch(`/status/${jobId}`);
-                    if (!response.ok) {
-                        throw new Error('Could not fetch job status.');
-                    }
+                    if (!response.ok) throw new Error('Could not fetch job status.');
                     const data = await response.json();
 
                     if (data.status === 'complete' || data.status === 'cached') {
                         clearInterval(pollingInterval);
-                        renderFeedback(data.result, () => {
-                             renderHarmonyChart(data.result.radar_data, data.result.radar_labels, data.result.top_notes_indices);
-                             // Tempo variation chart is disabled in this faster version
+                        pollingInterval = null;
+
+                        const resultData = data.result;
+
+                        renderFeedback(resultData, () => {
+                            renderHarmonyChart(resultData.radar_data, resultData.radar_labels, resultData.top_notes_indices);
+                            if (resultData.tempo_variation_data && resultData.tempo_variation_data.length > 1) {
+                                renderTempoVariationChart(resultData.tempo_variation_data);
+                            }
+                            if (resultData.dominant_pitch_data && resultData.dominant_pitch_data.length > 0) {
+                                renderDominantPitchChart(resultData.dominant_pitch_data, resultData.pitch_labels);
+                            }
                         });
                         document.getElementById('results-panel').classList.add('has-results');
                         document.getElementById('results-panel').classList.remove('is-loading');
                         document.getElementById('submit-btn').style.display = 'inline-flex';
+
                     } else if (data.status === 'error') {
                         clearInterval(pollingInterval);
+                        pollingInterval = null;
                         alert(`Analysis failed: ${data.message}`);
                         document.getElementById('results-panel').classList.remove('is-loading');
                         document.getElementById('submit-btn').style.display = 'inline-flex';
                     } else if (data.status === 'processing') {
-                        // Update loader text while we wait
                         messageIndex = (messageIndex + 1) % loadingMessages.length;
-                        loaderText.textContent = loadingMessages[messageIndex];
+                        if(loaderText) loaderText.textContent = loadingMessages[messageIndex];
                     }
 
                 } catch (error) {
                     console.error('Polling failed:', error);
                     clearInterval(pollingInterval);
+                    pollingInterval = null;
                     alert('An error occurred while fetching the results.');
                     document.getElementById('results-panel').classList.remove('is-loading');
                     document.getElementById('submit-btn').style.display = 'inline-flex';
                 }
-            }, 2500); // Check for results every 2.5 seconds
+            }, 2500);
         }
-
-        function initializeForm() {
-            const form = document.getElementById('analysis-form');
-            const submitBtn = document.getElementById('submit-btn');
-            const resultsPanel = document.getElementById('results-panel');
-            // ... (rest of the form initialization variables are unchanged) ...
-
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                // ... (logic to handle instruments is unchanged) ...
-
-                submitBtn.style.display = 'none';
-                resultsPanel.classList.remove('has-results');
-                resultsPanel.classList.add('is-loading');
-
-                try {
-                    // --- MODIFIED: Start the job, don't wait for it ---
-                    const response = await fetch('/analyze', { method: 'POST', body: new FormData(form), });
-                    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.error || 'An unknown error occurred.'); }
-
-                    const data = await response.json();
-
-                    if (data.status === 'cached') {
-                        // If result was cached, render it immediately
-                        renderFeedback(data.result, () => {
-                             renderHarmonyChart(data.result.radar_data, data.result.radar_labels, data.result.top_notes_indices);
-                        });
-                        resultsPanel.classList.add('has-results');
-                        resultsPanel.classList.remove('is-loading');
-                        submitBtn.style.display = 'inline-flex';
-                    } else if (data.status === 'processing') {
-                        // If job is processing, start polling
-                        pollForResult(data.job_id);
-                    }
-
-                } catch (error) {
-                    console.error('Analysis failed:', error);
-                    alert(`Error: ${error.message}`);
-                    submitBtn.style.display = 'inline-flex';
-                    resultsPanel.classList.remove('is-loading');
-                }
-                // NOTE: The finally block is removed as logic is now handled by the polling function
-            });
-
-            // ... (rest of the initializeForm function is unchanged) ...
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeForm();
-            initializeProceduralBackground();
-            initializeInteractiveEffects();
-        });
 
         function initializeForm() {
             const form = document.getElementById('analysis-form');
@@ -378,37 +308,20 @@
             const songLabel = document.querySelector('label[for="song"]');
             const artistGenreInput = document.getElementById('artist_or_genre');
             const artistGenreLabel = document.querySelector('label[for="artist_or_genre"]');
-
-            const handleSubmissionTypeChange = () => {
-                const selectedType = submissionTypeSelect.value;
-                switch (selectedType) {
-                    case 'Original Composition':
-                        songLabel.textContent = 'Title of Piece'; songInput.placeholder = 'e.g., Midnight Serenade';
-                        artistGenreLabel.textContent = 'Genre / Mood'; artistGenreInput.placeholder = 'e.g., Ambient Lo-fi';
-                        break;
-                    case 'Remix':
-                        songLabel.textContent = 'Original Song Title'; songInput.placeholder = 'e.g., Blue Monday';
-                        artistGenreLabel.textContent = 'Remix Genre'; artistGenreInput.placeholder = 'e.g., Tech House';
-                        break;
-                    case 'Cover Song': default:
-                        songLabel.textContent = 'Song Title'; songInput.placeholder = 'e.g., Wonderwall';
-                        artistGenreLabel.textContent = 'Original Artist'; artistGenreInput.placeholder = 'e.g., Oasis';
-                        break;
-                }
-            };
-            submissionTypeSelect.addEventListener('change', handleSubmissionTypeChange);
-            handleSubmissionTypeChange();
-
             const tagInputContainer = document.getElementById('tag-input-container');
             const instrumentInput = document.getElementById('instrument-input');
             const hiddenInput = document.getElementById('instruments-hidden-input');
             let instruments = [];
+
             const updateHiddenInput = () => { hiddenInput.value = instruments.join(','); };
             const createTag = (text) => {
                 const tag = document.createElement('div');
-                tag.className = 'tag'; tag.textContent = text;
+                tag.className = 'tag';
+                tag.textContent = text;
                 const removeBtn = document.createElement('button');
-                removeBtn.className = 'tag-remove-btn'; removeBtn.innerHTML = '&times;'; removeBtn.type = 'button';
+                removeBtn.className = 'tag-remove-btn';
+                removeBtn.innerHTML = '&times;';
+                removeBtn.type = 'button';
                 removeBtn.onclick = () => {
                     instruments = instruments.filter(t => t !== text);
                     updateHiddenInput();
@@ -418,6 +331,7 @@
                 tag.appendChild(removeBtn);
                 return tag;
             };
+
             instrumentInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && instrumentInput.value.trim() !== '') {
                     e.preventDefault();
@@ -432,7 +346,30 @@
                 }
             });
 
-            fileInput.addEventListener('change', () => { fileInputLabel.textContent = fileInput.files.length > 0 ? fileInput.files[0].name : 'Click to select a file...'; });
+            const handleSubmissionTypeChange = () => {
+                const selectedType = submissionTypeSelect.value;
+                switch (selectedType) {
+                    case 'Original Composition':
+                        songLabel.textContent = 'Title of Piece'; songInput.placeholder = 'e.g., Midnight Serenade';
+                        artistGenreLabel.textContent = 'Genre / Mood'; artistGenreInput.placeholder = 'e.g., Ambient Lo-fi';
+                        break;
+                    case 'Remix':
+                        songLabel.textContent = 'Original Song Title'; songInput.placeholder = 'e.g., Blue Monday';
+                        artistGenreLabel.textContent = 'Remix Genre'; artistGenreInput.placeholder = 'e.g., Tech House';
+                        break;
+                    case 'Cover Song':
+                    default:
+                        songLabel.textContent = 'Song Title'; songInput.placeholder = 'e.g., Wonderwall';
+                        artistGenreLabel.textContent = 'Original Artist'; artistGenreInput.placeholder = 'e.g., Oasis';
+                        break;
+                }
+            };
+            submissionTypeSelect.addEventListener('change', handleSubmissionTypeChange);
+            handleSubmissionTypeChange();
+
+            fileInput.addEventListener('change', () => {
+                fileInputLabel.textContent = fileInput.files.length > 0 ? fileInput.files[0].name : 'Click to select a file...';
+            });
 
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -444,41 +381,55 @@
                     instrumentInput.value = '';
                     updateHiddenInput();
                 }
-                if (instruments.length === 0) { alert('Please add at least one instrument.'); return; }
+                if (instruments.length === 0) {
+                    alert('Please add at least one instrument.');
+                    return;
+                }
                 submitBtn.style.display = 'none';
                 resultsPanel.classList.remove('has-results');
                 resultsPanel.classList.add('is-loading');
-                const loaderText = document.getElementById('loader-text');
-                const loadingMessages = ["Tuning instruments...", "Checking pitch accuracy...", "Analyzing rhythm...", "Evaluating harmony...", "Composing feedback..."];
-                let messageIndex = 0;
-                loaderText.textContent = loadingMessages[0];
-                if (loaderInterval) clearInterval(loaderInterval);
-                loaderInterval = setInterval(() => {
-                    messageIndex = (messageIndex + 1) % loadingMessages.length;
-                    loaderText.textContent = loadingMessages[messageIndex];
-                }, 2000);
+
                 try {
-                    const response = await fetch('/analyze', { method: 'POST', body: new FormData(form), });
-                    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.error || 'An unknown error occurred.'); }
-                    const data = await response.json();
-                    renderFeedback(data, () => {
-                        renderHarmonyChart(data.radar_data, data.radar_labels, data.top_notes_indices);
-                        if (data.tempo_variation_data && data.tempo_variation_data.length > 1) {
-                           renderTempoChart(data.tempo_variation_data);
-                        }
+                    const response = await fetch('/analyze', {
+                        method: 'POST',
+                        body: new FormData(form),
                     });
-                    resultsPanel.classList.add('has-results');
-                } catch (error) { console.error('Analysis failed:', error); alert(`Error: ${error.message}`);
-                } finally {
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'An unknown error occurred.');
+                    }
+                    const data = await response.json();
+                    if (data.status === 'cached') {
+                        renderFeedback(data.result, () => {
+                            renderHarmonyChart(data.result.radar_data, data.result.radar_labels, data.result.top_notes_indices);
+                            if (data.result.tempo_variation_data && data.result.tempo_variation_data.length > 1) {
+                                renderTempoVariationChart(data.result.tempo_variation_data);
+                            }
+                             if (data.result.dominant_pitch_data && data.result.dominant_pitch_data.length > 0) {
+                                renderDominantPitchChart(data.result.dominant_pitch_data, data.result.pitch_labels);
+                            }
+                        });
+                        resultsPanel.classList.add('has-results');
+                        resultsPanel.classList.remove('is-loading');
+                        submitBtn.style.display = 'inline-flex';
+                    } else if (data.status === 'processing') {
+                        pollForResult(data.job_id);
+                    }
+                } catch (error) {
+                    console.error('Analysis failed:', error);
+                    alert(`Error: ${error.message}`);
                     submitBtn.style.display = 'inline-flex';
                     resultsPanel.classList.remove('is-loading');
-                    if (loaderInterval) clearInterval(loaderInterval);
                 }
             });
         }
 
         function renderFeedback(data, onRenderComplete) {
             const container = document.getElementById('results-container');
+            if (!container || !data || !data.feedback_text) {
+                console.error("Invalid data provided to renderFeedback");
+                return;
+            }
             const sections = parseFeedbackText(data.feedback_text);
             const formatText = (text) => {
                 if (!text) return 'No details available.';
@@ -489,10 +440,14 @@
             const suggestionsHTML = `<div class="feedback-card feedback-content-card" style="animation-delay: 0.3s;"><div class="card-title">Actionable Suggestions</div><p>${formatText(sections['## Actionable Suggestions'])}</p></div>`;
             const harmonyGraphHTML = `<div class="feedback-card" id="chart-card" style="animation-delay: 0.1s;"><div class="card-title">Harmonic Fingerprint</div><div id="chart-container"></div></div>`;
 
-            // --- UPDATED: Add Tempo Chart if data exists ---
             let tempoGraphHTML = '';
             if (data.tempo_variation_data && data.tempo_variation_data.length > 1) {
-                tempoGraphHTML = `<div class="feedback-card" id="tempo-chart-card" style="animation-delay: 0.2s;"><div class="card-title">Tempo Variation</div><div id="tempo-chart-container"></div></div>`;
+                tempoGraphHTML = `<div class="feedback-card" id="tempo-chart-card" style="animation-delay: 0.2s;"><div class="card-title">Tempo Variation Over Time</div><div id="tempo-chart-container"></div></div>`;
+            }
+
+            let dominantPitchHTML = '';
+            if (data.dominant_pitch_data && data.dominant_pitch_data.length > 0) {
+                dominantPitchHTML = `<div class="feedback-card" id="dominant-pitch-chart-card" style="animation-delay: 0.3s;"><div class="card-title">Dominant Pitch Over Time</div><div id="dominant-pitch-chart-container"></div></div>`;
             }
 
             container.innerHTML = `
@@ -506,9 +461,12 @@
                 <div class="results-graph-col">
                     ${harmonyGraphHTML}
                     ${tempoGraphHTML}
+                    ${dominantPitchHTML}
                 </div>
             `;
-            if(onRenderComplete) { setTimeout(onRenderComplete, 0); }
+            if (onRenderComplete) {
+                setTimeout(onRenderComplete, 0);
+            }
         }
 
         function parseFeedbackText(text) {
@@ -518,8 +476,13 @@
             const lines = text.split('\n');
             lines.forEach(line => {
                 const trimmedLine = line.trim();
-                if (headings.includes(trimmedLine)) { if (currentHeading) { sections[currentHeading] = contentBuffer.trim(); } currentHeading = trimmedLine; contentBuffer = '';
-                } else if (currentHeading) { contentBuffer += line + '\n'; }
+                if (headings.includes(trimmedLine)) {
+                    if (currentHeading) { sections[currentHeading] = contentBuffer.trim(); }
+                    currentHeading = trimmedLine;
+                    contentBuffer = '';
+                } else if (currentHeading) {
+                    contentBuffer += line + '\n';
+                }
             });
             if (currentHeading) { sections[currentHeading] = contentBuffer.trim(); }
             if (sections['## Overall Score']) {
@@ -531,7 +494,7 @@
         }
 
         function renderHarmonyChart(seriesData, labels, topNotesIndices = []) {
-            if(harmonyChart) { harmonyChart.destroy(); }
+            if (harmonyChart) { harmonyChart.destroy(); }
             const chartContainer = document.querySelector("#chart-container");
             if (!chartContainer) return;
             const markerColors = new Array(12).fill('#fff');
@@ -541,8 +504,8 @@
                 series: [{ name: 'Pitch Class Prominence', data: seriesData }],
                 chart: { type: 'radar', height: '100%', background: 'transparent', toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
                 theme: { mode: 'dark' },
-                stroke: { width: 2, colors: [ 'var(--primary-color)' ] },
-                fill: { opacity: 0.3, colors: [ 'var(--primary-color)' ] },
+                stroke: { width: 2, colors: ['var(--primary-color)'] },
+                fill: { opacity: 0.3, colors: ['var(--primary-color)'] },
                 markers: { size: 4, colors: markerColors, strokeColors: 'var(--primary-color)', strokeWidth: 2, hover: { size: 6 } },
                 xaxis: { categories: labels, labels: { style: { colors: 'var(--text-color-muted)', fontSize: '12px' } } },
                 yaxis: { labels: { formatter: (value) => value.toFixed(0), style: { colors: 'var(--text-color-muted)' } } },
@@ -553,20 +516,19 @@
             harmonyChart.render();
         }
 
-        // --- NEW: Function to render the tempo chart ---
-        function renderTempoChart(tempoData) {
-            if(tempoChart) { tempoChart.destroy(); }
+        function renderTempoVariationChart(tempoData) {
+            if (tempoVariationChart) { tempoVariationChart.destroy(); }
             const chartContainer = document.querySelector("#tempo-chart-container");
             if (!chartContainer) return;
             const options = {
-                series: [{ name: 'Tempo', data: tempoData }],
+                series: [{ name: 'Tempo (BPM)', data: tempoData }],
                 chart: { type: 'line', height: '100%', background: 'transparent', toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
                 theme: { mode: 'dark' },
-                stroke: { curve: 'smooth', width: 2, colors: [ 'var(--primary-color)' ] },
+                stroke: { curve: 'smooth', width: 2, colors: ['var(--primary-color)'] },
                 markers: { size: 0 },
                 xaxis: {
                     type: 'numeric',
-                    title: { text: 'Time (seconds)', style: { color: 'var(--text-color-muted)', fontWeight: 400 } },
+                    title: { text: 'Time (s)', style: { color: 'var(--text-color-muted)', fontWeight: 400 } },
                     labels: { style: { colors: 'var(--text-color-muted)' }, formatter: (val) => val.toFixed(1) }
                 },
                 yaxis: {
@@ -579,17 +541,83 @@
                     y: { formatter: (val) => `${val.toFixed(0)} BPM` }
                 }
             };
-            tempoChart = new ApexCharts(chartContainer, options);
-            tempoChart.render();
+            tempoVariationChart = new ApexCharts(chartContainer, options);
+            tempoVariationChart.render();
         }
 
+        function renderDominantPitchChart(pitchData, pitchLabels) {
+            if (dominantPitchChart) { dominantPitchChart.destroy(); }
+            const chartContainer = document.querySelector("#dominant-pitch-chart-container");
+            if (!chartContainer) return;
+
+            // Convert pitch names to numerical indices for plotting
+            const pitchMap = {};
+            pitchLabels.forEach((label, index) => {
+                pitchMap[label] = index;
+            });
+
+            const seriesData = pitchData.map(d => ({
+                x: d.x,
+                y: pitchMap[d.y]
+            }));
+
+            const options = {
+                series: [{ name: 'Dominant Pitch', data: seriesData }],
+                chart: {
+                    type: 'scatter',
+                    height: '100%',
+                    background: 'transparent',
+                    toolbar: { show: false },
+                    fontFamily: 'Inter, sans-serif'
+                },
+                theme: { mode: 'dark' },
+                colors: ['var(--secondary-color)'],
+                markers: {
+                    size: 4,
+                    hover: { size: 6 }
+                },
+                xaxis: {
+                    type: 'numeric',
+                    tickAmount: 10,
+                    title: { text: 'Time (s)', style: { color: 'var(--text-color-muted)', fontWeight: 400 } },
+                    labels: { style: { colors: 'var(--text-color-muted)' }, formatter: (val) => val.toFixed(1) }
+                },
+                yaxis: {
+                    min: 0,
+                    max: 11,
+                    tickAmount: 12,
+                    title: { text: 'Pitch Class', style: { color: 'var(--text-color-muted)', fontWeight: 400 } },
+                    labels: {
+                        style: { colors: 'var(--text-color-muted)' },
+                        formatter: function (val) {
+                            return pitchLabels[Math.round(val)];
+                        }
+                    }
+                },
+                grid: { borderColor: 'var(--border-color)' },
+                tooltip: {
+                    x: { formatter: (val) => `${val.toFixed(2)} s` },
+                    y: {
+                        formatter: function (val) {
+                            return pitchLabels[val];
+                        }
+                    }
+                }
+            };
+            dominantPitchChart = new ApexCharts(chartContainer, options);
+            dominantPitchChart.render();
+        }
+
+
         function initializeInteractiveEffects() {
-            const cursorDot = document.querySelector('.cursor-dot'); const cursorAura = document.querySelector('.cursor-aura');
+            const cursorDot = document.querySelector('.cursor-dot');
+            const cursorAura = document.querySelector('.cursor-aura');
             if (!cursorDot || !cursorAura) return;
             let mouseX = 0, mouseY = 0, auraX = 0, auraY = 0;
             window.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
             const animateEffects = () => {
-                auraX += (mouseX - auraX) * 0.2; auraY += (mouseY - auraY) * 0.2;
+                auraX += (mouseX - auraX) * 0.2;
+                auraY += (mouseY - auraY) * 0.2;
                 cursorDot.style.transform = `translate(${mouseX - (cursorDot.offsetWidth / 2)}px, ${mouseY - (cursorDot.offsetHeight / 2)}px)`;
                 cursorAura.style.transform = `translate(${auraX - (cursorAura.offsetWidth / 2)}px, ${auraY - (cursorAura.offsetHeight / 2)}px)`;
                 requestAnimationFrame(animateEffects);
@@ -598,20 +626,71 @@
         }
 
         function initializeProceduralBackground() {
-            const canvas = document.getElementById('procedural-background'); if (!canvas) return;
+            const canvas = document.getElementById('procedural-background');
+            if (!canvas) return;
             const ctx = canvas.getContext('2d');
-            let blobs = []; const blobCount = 5;
-            const setCanvasDimensions = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+            let blobs = [];
+            const blobCount = 5;
+            const setCanvasDimensions = () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            };
             window.addEventListener('resize', setCanvasDimensions);
             class Blob {
-                constructor() { this.x = Math.random() * canvas.width; this.y = Math.random() * canvas.height; this.radius = Math.random() * 400 + 400; this.vx = (Math.random() - 0.5) * 1.5; this.vy = (Math.random() - 0.5) * 1.5; this.color = { h: Math.random() * 60 + 220, s: 40, l: 20 }; this.maxLife = Math.random() * 800 + 800; this.life = this.maxLife; this.alpha = 0; }
-                update() { this.x += this.vx; this.y += this.vy; this.life--; if (this.x + this.radius > canvas.width || this.x - this.radius < 0) this.vx *= -1; if (this.y + this.radius > canvas.height || this.y - this.radius < 0) this.vy *= -1; const lifeProgress = (this.maxLife - this.life) / this.maxLife; this.alpha = 0.08 * Math.sin(lifeProgress * Math.PI); }
-                draw() { ctx.beginPath(); const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius); const colorString = `hsla(${this.color.h}, ${this.color.s}%, ${this.color.l}%, ${this.alpha})`; const transparentString = `hsla(${this.color.h}, ${this.color.s}%, ${this.color.l}%, 0)`; gradient.addColorStop(0, colorString); gradient.addColorStop(1, transparentString); ctx.fillStyle = gradient; ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill(); }
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.radius = Math.random() * 400 + 400;
+                    this.vx = (Math.random() - 0.5) * 1.5;
+                    this.vy = (Math.random() - 0.5) * 1.5;
+                    this.color = { h: Math.random() * 60 + 220, s: 40, l: 20 };
+                    this.maxLife = Math.random() * 800 + 800;
+                    this.life = this.maxLife;
+                    this.alpha = 0;
+                }
+                update() {
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    this.life--;
+                    if (this.x + this.radius > canvas.width || this.x - this.radius < 0) this.vx *= -1;
+                    if (this.y + this.radius > canvas.height || this.y - this.radius < 0) this.vy *= -1;
+                    const lifeProgress = (this.maxLife - this.life) / this.maxLife;
+                    this.alpha = 0.08 * Math.sin(lifeProgress * Math.PI);
+                }
+                draw() {
+                    ctx.beginPath();
+                    const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius);
+                    const colorString = `hsla(${this.color.h}, ${this.color.s}%, ${this.color.l}%, ${this.alpha})`;
+                    const transparentString = `hsla(${this.color.h}, ${this.color.s}%, ${this.color.l}%, 0)`;
+                    gradient.addColorStop(0, colorString);
+                    gradient.addColorStop(1, transparentString);
+                    ctx.fillStyle = gradient;
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             }
-            function createBlobs() { blobs = []; for (let i = 0; i < blobCount; i++) { blobs.push(new Blob()); } }
-            function animate() { ctx.clearRect(0, 0, canvas.width, canvas.height); blobs.forEach((blob, index) => { blob.update(); blob.draw(); if (blob.life <= 0) { blobs[index] = new Blob(); } }); requestAnimationFrame(animate); }
-            setCanvasDimensions(); createBlobs(); animate();
+            function createBlobs() {
+                blobs = [];
+                for (let i = 0; i < blobCount; i++) {
+                    blobs.push(new Blob());
+                }
+            }
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                blobs.forEach((blob, index) => {
+                    blob.update();
+                    blob.draw();
+                    if (blob.life <= 0) {
+                        blobs[index] = new Blob();
+                    }
+                });
+                requestAnimationFrame(animate);
+            }
+            setCanvasDimensions();
+            createBlobs();
+            animate();
         }
     </script>
 </body>
 </html>
+
